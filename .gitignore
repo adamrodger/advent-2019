@@ -1,0 +1,6 @@
+.vs/
+_ReSharper.Caches/
+[Bb]in/
+[Oo]bj/
+*.user
+.vscode/
