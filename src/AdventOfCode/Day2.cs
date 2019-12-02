@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using AdventOfCode.IntCode;
 
 namespace AdventOfCode
 {
@@ -10,7 +10,15 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            return RunIntCodeProgram(input, 12, 2);
+            var emulator = new IntCodeEmulator(input)
+            {
+                Noun = 12,
+                Verb = 2
+            };
+
+            emulator.Execute();
+
+            return emulator.Result;
         }
 
         public int Part2(string[] input)
@@ -21,9 +29,15 @@ namespace AdventOfCode
             {
                 for (int verb = 0; verb <= 99; verb++)
                 {
-                    int result = RunIntCodeProgram(input, noun, verb);
+                    var emulator = new IntCodeEmulator(input)
+                    {
+                        Noun = noun,
+                        Verb = verb
+                    };
 
-                    if (result == target)
+                    emulator.Execute();
+
+                    if (emulator.Result == target)
                     {
                         return noun * 100 + verb;
                     }
@@ -31,42 +45,6 @@ namespace AdventOfCode
             }
 
             throw new Exception("not found");
-        }
-
-        private static int RunIntCodeProgram(string[] input, int noun, int verb)
-        {
-            int[] program = input.First().Split(',').Select(int.Parse).ToArray();
-
-            program[1] = noun;
-            program[2] = verb;
-
-            int counter = 0;
-
-            while (true)
-            {
-                int instruction = program[counter];
-
-                if (instruction == 99)
-                {
-                    return program[0];
-                }
-
-                int a = program[counter + 1];
-                int b = program[counter + 2];
-                int c = program[counter + 3];
-
-                switch (instruction)
-                {
-                    case 1:
-                        program[c] = program[a] + program[b];
-                        break;
-                    case 2:
-                        program[c] = program[a] * program[b];
-                        break;
-                }
-
-                counter += 4;
-            }
         }
     }
 }
