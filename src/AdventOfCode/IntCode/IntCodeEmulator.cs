@@ -19,7 +19,7 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Instruction map
         /// </summary>
-        private readonly Dictionary<int, Instruction> Instructions;
+        private readonly Dictionary<OpCode, Instruction> Instructions;
 
         /// <summary>
         /// Program instructions
@@ -77,18 +77,18 @@ namespace AdventOfCode.IntCode
             this.StdOut = stdOut;
             this.Pointer = 0;
 
-            this.Instructions = new Dictionary<int, Instruction>
+            this.Instructions = new[]
             {
-                [OpCodes.Halt]     = new Instruction(OpCodes.Halt,     0, (a, b, c) => { }),
-                [OpCodes.Add]      = new Instruction(OpCodes.Add,      3, (a, b, c) => this.Program[c] = a + b),
-                [OpCodes.Multiply] = new Instruction(OpCodes.Multiply, 3, (a, b, c) => this.Program[c] = a * b),
-                [OpCodes.Input]    = new Instruction(OpCodes.Input,    1, (a, b, c) => this.Program[a] = this.StdIn.Dequeue()),
-                [OpCodes.Output]   = new Instruction(OpCodes.Output,   1, (a, b, c) => this.StdOut.Append(a)),
-                [OpCodes.JumpZ]    = new Instruction(OpCodes.JumpZ,    2, (a, b, c) => this.Pointer = a == 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
-                [OpCodes.JumpNZ]   = new Instruction(OpCodes.JumpNZ,   2, (a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
-                [OpCodes.Lt]       = new Instruction(OpCodes.Lt,       3, (a, b, c) => this.Program[c] = a < b ? 1 : 0),
-                [OpCodes.Eq]       = new Instruction(OpCodes.Eq,       3, (a, b, c) => this.Program[c] = a == b ? 1 : 0),
-            };
+                new Instruction(OpCode.Halt,       0,    (a, b, c) => { }),
+                new Instruction(OpCode.Add,        3,    (a, b, c) => this.Program[c] = a + b),
+                new Instruction(OpCode.Multiply,   3,    (a, b, c) => this.Program[c] = a * b),
+                new Instruction(OpCode.Input,      1,    (a, b, c) => this.Program[a] = this.StdIn.Dequeue()),
+                new Instruction(OpCode.Output,     1,    (a, b, c) => this.StdOut.Append(a)),
+                new Instruction(OpCode.JumpZ,      2,    (a, b, c) => this.Pointer = a == 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
+                new Instruction(OpCode.JumpNZ,     2,    (a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
+                new Instruction(OpCode.LessThan,   3,    (a, b, c) => this.Program[c] = a < b ? 1 : 0),
+                new Instruction(OpCode.Equal,      3,    (a, b, c) => this.Program[c] = a == b ? 1 : 0),
+            }.ToDictionary(o => o.OpCode);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace AdventOfCode.IntCode
             {
                 int rawOpCode = this.Program[this.Pointer];
 
-                if (rawOpCode == OpCodes.Halt)
+                if (rawOpCode == (int)OpCode.Halt)
                 {
                     return;
                 }
@@ -109,14 +109,14 @@ namespace AdventOfCode.IntCode
                 this.Pointer++;
 
                 // parse opcode
-                (int opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
+                (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
 
                 // get the instruction and args
                 Instruction instruction = this.Instructions[opCode];
                 int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
                 // dereference the args
-                if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCodes.Input) // input can never be immediate
+                if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
                 {
                     args[0] = this.Program[args[0]];
                 }
@@ -143,11 +143,11 @@ namespace AdventOfCode.IntCode
         /// </summary>
         /// <param name="rawOpCode">Raw opcode value</param>
         /// <returns></returns>
-        private static (int opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(int rawOpCode)
+        private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(int rawOpCode)
         {
             if (rawOpCode < 100)
             {
-                return (rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
+                return ((OpCode)rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
             }
 
             int opCode = rawOpCode % 100;
@@ -155,7 +155,7 @@ namespace AdventOfCode.IntCode
             string s = rawOpCode.ToString().PadLeft(5, '0');
 
             // this is awful, fix later
-            return (opCode,
+            return ((OpCode)opCode,
                     s[2] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
                     s[1] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
                     s[0] == '1' ? ParameterMode.Immediate : ParameterMode.Position);

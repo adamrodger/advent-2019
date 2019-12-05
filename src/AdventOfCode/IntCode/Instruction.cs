@@ -10,7 +10,7 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// OpCode of the instruction
         /// </summary>
-        public int OpCode { get; }
+        public OpCode OpCode { get; }
 
         /// <summary>
         /// Number of arguments for the instruction
@@ -22,7 +22,7 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public Action<int, int, int> Action { get; }
 
-        public Instruction(int opCode, int args, Action<int, int, int> action)
+        public Instruction(OpCode opCode, int args, Action<int, int, int> action)
         {
             this.OpCode = opCode;
             this.Args = args;
