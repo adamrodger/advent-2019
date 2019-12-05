@@ -11,26 +11,26 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            var inArgs = new Queue<int>(new[] { 1 });
-            var output = new StringBuilder();
+            var stdin = new Queue<int>(new[] { 1 });
+            var stdout = new StringBuilder();
 
-            var vm = new IntCodeEmulator(input, inArgs, output);
+            var vm = new IntCodeEmulator(input, stdin, stdout);
             vm.Execute();
 
-            string result = output.ToString();
+            string result = stdout.ToString();
 
             return int.Parse(result);
         }
 
         public int Part2(string[] input)
         {
-            var inArgs = new Queue<int>(new[] { 5 });
-            var output = new StringBuilder();
+            var stdin = new Queue<int>(new[] { 5 });
+            var stdout = new StringBuilder();
 
-            var vm = new IntCodeEmulator(input, inArgs, output);
+            var vm = new IntCodeEmulator(input, stdin, stdout);
             vm.Execute();
 
-            string result = output.ToString();
+            string result = stdout.ToString();
 
             return int.Parse(result);
         }

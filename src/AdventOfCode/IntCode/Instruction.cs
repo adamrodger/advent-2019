@@ -18,15 +18,22 @@ namespace AdventOfCode.IntCode
         public int Args { get; }
 
         /// <summary>
-        /// Instruction action of (program, a, b, c), where some or all of the 3 args may be ignored
+        /// Instruction action of (a, b, c), where some or all of the 3 args may be ignored
         /// </summary>
-        public Action<int[], int, int, int> Action { get; }
+        public Action<int, int, int> Action { get; }
 
-        public Instruction(int opCode, int args, Action<int[], int, int, int> action)
+        public Instruction(int opCode, int args, Action<int, int, int> action)
         {
             this.OpCode = opCode;
             this.Args = args;
             this.Action = action;
+        }
+
+        /// <summary>Returns a string that represents the current object.</summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
+        {
+            return $"{nameof(this.OpCode)}: {this.OpCode}, {nameof(this.Args)}: {this.Args}";
         }
     }
 }

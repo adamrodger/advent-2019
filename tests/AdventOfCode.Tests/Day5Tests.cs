@@ -51,7 +51,10 @@ namespace AdventOfCode.Tests
         }
 
         [Theory]
-        [InlineData("3,9,8,9,10,9,4,9,99,-1,8", 0)]
+        [InlineData("3,9,8,9,10,9,4,9,99,-1,8", 0)] // position mode, input == 8?
+        [InlineData("3,9,7,9,10,9,4,9,99,-1,8", 1)] // position mode, input < 8?
+        [InlineData("3,3,1108,-1,8,3,4,3,99", 0)] // immediate mode, input == 8?
+        [InlineData("3,3,1107,-1,8,3,4,3,99", 1)] // immediate mode, input < 8?
         public void Part2_SampleInput_ProducesCorrectResponse(string input, int expected)
         {
             var result = solver.Part2(new[] { input });

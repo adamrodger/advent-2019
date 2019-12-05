@@ -6,110 +6,159 @@ using MoreLinq;
 
 namespace AdventOfCode.IntCode
 {
+    /// <summary>
+    /// Emulator for IntCode programs
+    /// </summary>
     public class IntCodeEmulator
     {
+        /// <summary>
+        /// Indicates that a parameter is unused in an operation
+        /// </summary>
+        private const int Unused = -1;
+
+        /// <summary>
+        /// Instruction map
+        /// </summary>
         private readonly Dictionary<int, Instruction> Instructions;
 
+        /// <summary>
+        /// Program instructions
+        /// </summary>
         public int[] Program { get; }
 
+        /// <summary>
+        /// Instruction pointer
+        /// </summary>
         public int Pointer { get; private set; }
 
+        /// <summary>
+        /// Program result (in register 0)
+        /// </summary>
         public int Result => this.Program[0];
 
+        /// <summary>
+        /// Program noun (in register 1)
+        /// </summary>
         public int Noun
         {
             get => this.Program[1];
             set => this.Program[1] = value;
         }
 
+        /// <summary>
+        /// Program verb (in register 2)
+        /// </summary>
         public int Verb
         {
             get => this.Program[2];
             set => this.Program[2] = value;
         }
 
-        public Queue<int> Input { get; }
+        /// <summary>
+        /// Standard input
+        /// </summary>
+        public Queue<int> StdIn { get; }
 
-        public StringBuilder Output { get; }
+        /// <summary>
+        /// Standard output
+        /// </summary>
+        public StringBuilder StdOut { get; }
 
-        public IntCodeEmulator(IReadOnlyList<string> program, Queue<int> input = null, StringBuilder output = null)
+        /// <summary>
+        /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
+        /// </summary>
+        /// <param name="program">Program instructions</param>
+        /// <param name="stdIn">Standard input</param>
+        /// <param name="stdOut">Standard output</param>
+        public IntCodeEmulator(IReadOnlyList<string> program, Queue<int> stdIn = null, StringBuilder stdOut = null)
         {
             this.Program = program[0].Numbers();
-            this.Input = input;
-            this.Output = output;
+            this.StdIn = stdIn;
+            this.StdOut = stdOut;
             this.Pointer = 0;
 
             this.Instructions = new Dictionary<int, Instruction>
             {
-                [OpCodes.Halt]     = new Instruction(OpCodes.Halt,     0, (p, a, b, c) => { }),
-                [OpCodes.Add]      = new Instruction(OpCodes.Add,      3, (p, a, b, c) => p[c] = a + b),
-                [OpCodes.Multiply] = new Instruction(OpCodes.Multiply, 3, (p, a, b, c) => p[c] = a * b),
-                [OpCodes.Input]    = new Instruction(OpCodes.Input,    1, (p, a, b, c) => p[a] = this.Input.Dequeue()),
-                [OpCodes.Output]   = new Instruction(OpCodes.Output,   1, (p, a, b, c) => this.Output.Append(a)),
-                [OpCodes.JumpZ]    = new Instruction(OpCodes.JumpZ,    2, (p, a, b, c) => this.Pointer = a == 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
-                [OpCodes.JumpNZ]   = new Instruction(OpCodes.JumpNZ,   2, (p, a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
-                [OpCodes.Lt]       = new Instruction(OpCodes.Lt,       3, (p, a, b, c) => p[c] = a < b ? 1 : 0),
-                [OpCodes.Eq]       = new Instruction(OpCodes.Eq,       3, (p, a, b, c) => p[c] = a == b ? 1 : 0),
+                [OpCodes.Halt]     = new Instruction(OpCodes.Halt,     0, (a, b, c) => { }),
+                [OpCodes.Add]      = new Instruction(OpCodes.Add,      3, (a, b, c) => this.Program[c] = a + b),
+                [OpCodes.Multiply] = new Instruction(OpCodes.Multiply, 3, (a, b, c) => this.Program[c] = a * b),
+                [OpCodes.Input]    = new Instruction(OpCodes.Input,    1, (a, b, c) => this.Program[a] = this.StdIn.Dequeue()),
+                [OpCodes.Output]   = new Instruction(OpCodes.Output,   1, (a, b, c) => this.StdOut.Append(a)),
+                [OpCodes.JumpZ]    = new Instruction(OpCodes.JumpZ,    2, (a, b, c) => this.Pointer = a == 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
+                [OpCodes.JumpNZ]   = new Instruction(OpCodes.JumpNZ,   2, (a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
+                [OpCodes.Lt]       = new Instruction(OpCodes.Lt,       3, (a, b, c) => this.Program[c] = a < b ? 1 : 0),
+                [OpCodes.Eq]       = new Instruction(OpCodes.Eq,       3, (a, b, c) => this.Program[c] = a == b ? 1 : 0),
             };
         }
 
+        /// <summary>
+        /// Execute the program until a Halt instruction (code 99) is received
+        /// </summary>
         public void Execute()
         {
             while (true)
             {
-                int opCode = this.Program[this.Pointer];
+                int rawOpCode = this.Program[this.Pointer];
 
-                if (opCode == OpCodes.Halt)
+                if (rawOpCode == OpCodes.Halt)
                 {
                     return;
                 }
 
-                // skip to the args
+                // skip over the opcode to the args
                 this.Pointer++;
 
                 // parse opcode
-                (int opCode, int modeA, int modeB, int modeC) decoded = ParseOpcode(opCode);
+                (int opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
 
                 // get the instruction and args
-                Instruction instruction = this.Instructions[decoded.opCode];
-                int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, -1).ToArray();
+                Instruction instruction = this.Instructions[opCode];
+                int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
                 // dereference the args
-                if (decoded.modeA == 0 && args[0] > -1 && decoded.opCode != OpCodes.Input)
+                if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCodes.Input) // input can never be immediate
                 {
                     args[0] = this.Program[args[0]];
                 }
-                if (decoded.modeB == 0 && args[1] > -1)
+                if (modeB == ParameterMode.Position && args[1] != Unused)
                 {
                     args[1] = this.Program[args[1]];
                 }
-                if (decoded.modeC == 0 && args[2] > -1)
+                if (modeC == ParameterMode.Position && args[2] != Unused)
                 {
-                    // this can't actually happen I don't think
+                    // this can't actually happen I don't think - outputs are always to a particular address
                     //args[2] = this.Program[args[2]];
                 }
 
-                // invoke the action
-                instruction.Action.Invoke(this.Program, args[0], args[1], args[2]);
+                // invoke the action, which may change the program or the pointer
+                instruction.Action.Invoke(args[0], args[1], args[2]);
 
-                // skip the args to the next op code
+                // skip the args to the next instruction
                 this.Pointer += instruction.Args;
             }
         }
 
-        private static (int opCode, int modeA, int modeB, int modeC) ParseOpcode(int opCode)
+        /// <summary>
+        /// Decode "immediate mode" opcodes to the opcode plus its parameter modes
+        /// </summary>
+        /// <param name="rawOpCode">Raw opcode value</param>
+        /// <returns></returns>
+        private static (int opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(int rawOpCode)
         {
-            if (opCode < 100)
+            if (rawOpCode < 100)
             {
-                return (opCode, 0, 0, 0);
+                return (rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
             }
 
-            int parsedOpCode = opCode % 100;
+            int opCode = rawOpCode % 100;
 
-            string s = opCode.ToString().PadLeft(5, '0');
+            string s = rawOpCode.ToString().PadLeft(5, '0');
 
             // this is awful, fix later
-            return (parsedOpCode, int.Parse(s[2].ToString()), int.Parse(s[1].ToString()), int.Parse(s[0].ToString()));
+            return (opCode,
+                    s[2] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
+                    s[1] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
+                    s[0] == '1' ? ParameterMode.Immediate : ParameterMode.Position);
         }
     }
 }
