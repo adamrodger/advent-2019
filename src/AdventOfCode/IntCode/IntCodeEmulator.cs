@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using AdventOfCode.Utilities;
@@ -105,6 +106,11 @@ namespace AdventOfCode.IntCode
                     return;
                 }
 
+                if (Debugger.IsAttached)
+                {
+                    Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
+                }
+
                 // skip over the opcode to the args
                 this.Pointer++;
 
@@ -114,6 +120,11 @@ namespace AdventOfCode.IntCode
                 // get the instruction and args
                 Instruction instruction = this.Instructions[opCode];
                 int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
+
+                if (Debugger.IsAttached)
+                {
+                    Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
+                }
 
                 // dereference the args
                 if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
@@ -128,6 +139,11 @@ namespace AdventOfCode.IntCode
                 {
                     // this can't actually happen I don't think - outputs are always to a particular address
                     //args[2] = this.Program[args[2]];
+                }
+
+                if (Debugger.IsAttached)
+                {
+                    Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
                 }
 
                 // invoke the action, which may change the program or the pointer
