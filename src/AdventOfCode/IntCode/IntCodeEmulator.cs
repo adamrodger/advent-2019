@@ -37,6 +37,8 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Result => this.Program[0];
 
+        public bool Halted { get; private set; }
+
         /// <summary>
         /// Program noun (in register 1)
         /// </summary>
@@ -63,7 +65,7 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Standard output
         /// </summary>
-        public StringBuilder StdOut { get; }
+        public Queue<int> StdOut { get; }
 
         /// <summary>
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
@@ -71,7 +73,7 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         /// <param name="stdIn">Standard input</param>
         /// <param name="stdOut">Standard output</param>
-        public IntCodeEmulator(IReadOnlyList<string> program, Queue<int> stdIn = null, StringBuilder stdOut = null)
+        public IntCodeEmulator(IReadOnlyList<string> program, Queue<int> stdIn = null, Queue<int> stdOut = null)
         {
             this.Program = program[0].Numbers();
             this.StdIn = stdIn;
@@ -84,7 +86,7 @@ namespace AdventOfCode.IntCode
                 new Instruction(OpCode.Add,        3,    (a, b, c) => this.Program[c] = a + b),
                 new Instruction(OpCode.Multiply,   3,    (a, b, c) => this.Program[c] = a * b),
                 new Instruction(OpCode.Input,      1,    (a, b, c) => this.Program[a] = this.StdIn.Dequeue()),
-                new Instruction(OpCode.Output,     1,    (a, b, c) => this.StdOut.Append(a)),
+                new Instruction(OpCode.Output,     1,    (a, b, c) => this.StdOut.Enqueue(a)),
                 new Instruction(OpCode.JumpZ,      2,    (a, b, c) => this.Pointer = a == 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
                 new Instruction(OpCode.JumpNZ,     2,    (a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
                 new Instruction(OpCode.LessThan,   3,    (a, b, c) => this.Program[c] = a < b ? 1 : 0),
@@ -97,61 +99,81 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public void Execute()
         {
-            while (true)
+            while (this.Step())
             {
-                int rawOpCode = this.Program[this.Pointer];
-
-                if (rawOpCode == (int)OpCode.Halt)
-                {
-                    return;
-                }
-
-                if (Debugger.IsAttached)
-                {
-                    Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
-                }
-
-                // skip over the opcode to the args
-                this.Pointer++;
-
-                // parse opcode
-                (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
-
-                // get the instruction and args
-                Instruction instruction = this.Instructions[opCode];
-                int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
-
-                if (Debugger.IsAttached)
-                {
-                    Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
-                }
-
-                // dereference the args
-                if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
-                {
-                    args[0] = this.Program[args[0]];
-                }
-                if (modeB == ParameterMode.Position && args[1] != Unused)
-                {
-                    args[1] = this.Program[args[1]];
-                }
-                if (modeC == ParameterMode.Position && args[2] != Unused)
-                {
-                    // this can't actually happen I don't think - outputs are always to a particular address
-                    //args[2] = this.Program[args[2]];
-                }
-
-                if (Debugger.IsAttached)
-                {
-                    Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
-                }
-
-                // invoke the action, which may change the program or the pointer
-                instruction.Action.Invoke(args[0], args[1], args[2]);
-
-                // skip the args to the next instruction
-                this.Pointer += instruction.Args;
             }
+        }
+
+        public OpCode PeekNextOpCode()
+        {
+            int rawOpCode = this.Program[this.Pointer];
+            (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
+            return opCode;
+        }
+
+        public bool WaitingForInput()
+        {
+            return this.PeekNextOpCode() == OpCode.Input && !this.StdIn.Any();
+        }
+
+        public bool Step()
+        {
+            int rawOpCode = this.Program[this.Pointer];
+
+            if (rawOpCode == (int) OpCode.Halt)
+            {
+                this.Halted = true;
+                return true;
+            }
+
+            if (Debugger.IsAttached)
+            {
+             //   Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
+            }
+
+            // skip over the opcode to the args
+            this.Pointer++;
+
+            // parse opcode
+            (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
+
+            // get the instruction and args
+            Instruction instruction = this.Instructions[opCode];
+            int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
+
+            if (Debugger.IsAttached)
+            {
+            //    Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
+            }
+
+            // dereference the args
+            if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
+            {
+                args[0] = this.Program[args[0]];
+            }
+
+            if (modeB == ParameterMode.Position && args[1] != Unused)
+            {
+                args[1] = this.Program[args[1]];
+            }
+
+            if (modeC == ParameterMode.Position && args[2] != Unused)
+            {
+                // this can't actually happen I don't think - outputs are always to a particular address
+                //args[2] = this.Program[args[2]];
+            }
+
+            if (Debugger.IsAttached)
+            {
+           //     Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
+            }
+
+            // invoke the action, which may change the program or the pointer
+            instruction.Action.Invoke(args[0], args[1], args[2]);
+
+            // skip the args to the next instruction
+            this.Pointer += instruction.Args;
+            return false;
         }
 
         /// <summary>

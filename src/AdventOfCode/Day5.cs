@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using AdventOfCode.IntCode;
 
@@ -12,27 +13,23 @@ namespace AdventOfCode
         public int Part1(string[] input)
         {
             var stdin = new Queue<int>(new[] { 1 });
-            var stdout = new StringBuilder();
+            var stdout = new Queue<int>();
 
             var vm = new IntCodeEmulator(input, stdin, stdout);
             vm.Execute();
 
-            string result = stdout.ToString();
-
-            return int.Parse(result);
+            return stdout.Last();
         }
 
         public int Part2(string[] input)
         {
             var stdin = new Queue<int>(new[] { 5 });
-            var stdout = new StringBuilder();
+            var stdout = new Queue<int>();
 
             var vm = new IntCodeEmulator(input, stdin, stdout);
             vm.Execute();
 
-            string result = stdout.ToString();
-
-            return int.Parse(result);
+            return stdout.Last();
         }
     }
 }
