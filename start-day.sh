@@ -23,3 +23,6 @@ sed -i "s/using FactAttribute = System.Runtime.CompilerServices.CompilerGenerate
 # download input file
 curl -L "https://adventofcode.com/2019/day/$1/input" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8" -H "Accept-Language: en-US,en;q=0.5" --compressed -H "Referer: https://adventofcode.com/2019/day/$1" -H "Connection: keep-alive" -H "Cookie: session=$AOC_COOKIE" -H "Upgrade-Insecure-Requests: 1" -H "Cache-Control: max-age=0" -o src/AdventOfCode/inputs/day$1.txt
 
+# start VS and the web page
+start https://adventofcode.com/2019/day/$1
+start AdventOfCode.sln
