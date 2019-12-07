@@ -12,22 +12,22 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            IEnumerable<IList<int>> permutations = Enumerable.Range(0, 5).ToArray().Permutations();
+            IEnumerable<IList<int>> permutations = Enumerable.Range(0, 5).Permutations();
             int max = -1;
 
             foreach (IList<int> permutation in permutations)
             {
                 int output = 0;
 
-                foreach (int thruster in permutation)
+                foreach (int id in permutation)
                 {
-                    var stdin = new Queue<int>(new[] {thruster, output});
-                    var stdout = new Queue<int>();
+                    var emulator = new IntCodeEmulator(input);
+                    emulator.StdIn.Enqueue(id);
+                    emulator.StdIn.Enqueue(output);
 
-                    var emulator = new IntCodeEmulator(input, stdin, stdout);
                     emulator.Execute();
 
-                    output = stdout.Dequeue();
+                    output = emulator.StdOut.Dequeue();
                 }
 
                 if (output > max)
@@ -41,8 +41,7 @@ namespace AdventOfCode
 
         public int Part2(string[] input)
         {
-            IEnumerable<IList<int>> permutations = Enumerable.Range(5, 5).ToArray().Permutations();
-            //var permutations = new [] { new List<int> {  9, 8, 7, 6, 5 } };
+            IEnumerable<IList<int>> permutations = Enumerable.Range(5, 5).Permutations();
             int max = -1;
 
             foreach (IList<int> permutation in permutations)
@@ -51,12 +50,12 @@ namespace AdventOfCode
 
                 foreach (int id in permutation)
                 {
-                    var vm = new IntCodeEmulator(input, new Queue<int>(), new Queue<int>());
+                    var vm = new IntCodeEmulator(input);
                     vm.StdIn.Enqueue(id);
                     waiting.Enqueue(vm);
                 }
 
-                // initial input
+                // initial input is always 0
                 int output = 0;
 
                 while (waiting.Any())
@@ -65,7 +64,7 @@ namespace AdventOfCode
                     vm.StdIn.Enqueue(output);
 
                     // keep going until it needs input
-                    while (!(vm.Halted || vm.WaitingForInput()))
+                    while (!(vm.Halted || vm.WaitingForInput))
                     {
                         vm.Step();
                     }

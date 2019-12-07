@@ -2,7 +2,6 @@
 using Xunit;
 using Xunit.Abstractions;
 
-
 namespace AdventOfCode.Tests
 {
     public class Day7Tests

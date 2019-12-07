@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using AdventOfCode.Utilities;
 using MoreLinq;
 
@@ -37,7 +36,15 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Result => this.Program[0];
 
+        /// <summary>
+        /// The VM has halted
+        /// </summary>
         public bool Halted { get; private set; }
+
+        /// <summary>
+        /// The VM is waiting if the next opcode requires input but stdin is currently empty
+        /// </summary>
+        public bool WaitingForInput => this.PeekNextOpCode() == OpCode.Input && !this.StdIn.Any();
 
         /// <summary>
         /// Program noun (in register 1)
@@ -71,13 +78,11 @@ namespace AdventOfCode.IntCode
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
         /// </summary>
         /// <param name="program">Program instructions</param>
-        /// <param name="stdIn">Standard input</param>
-        /// <param name="stdOut">Standard output</param>
-        public IntCodeEmulator(IReadOnlyList<string> program, Queue<int> stdIn = null, Queue<int> stdOut = null)
+        public IntCodeEmulator(IReadOnlyList<string> program)
         {
             this.Program = program[0].Numbers();
-            this.StdIn = stdIn;
-            this.StdOut = stdOut;
+            this.StdIn = new Queue<int>();
+            this.StdOut = new Queue<int>();
             this.Pointer = 0;
 
             this.Instructions = new[]
@@ -99,36 +104,27 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public void Execute()
         {
-            while (this.Step())
+            while (!this.Halted)
             {
+                this.Step();
             }
         }
 
-        public OpCode PeekNextOpCode()
-        {
-            int rawOpCode = this.Program[this.Pointer];
-            (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
-            return opCode;
-        }
-
-        public bool WaitingForInput()
-        {
-            return this.PeekNextOpCode() == OpCode.Input && !this.StdIn.Any();
-        }
-
-        public bool Step()
+        /// <summary>
+        /// Execute one instruction
+        /// </summary>
+        public void Step()
         {
             int rawOpCode = this.Program[this.Pointer];
 
             if (rawOpCode == (int) OpCode.Halt)
             {
                 this.Halted = true;
-                return true;
             }
 
             if (Debugger.IsAttached)
             {
-             //   Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
+                Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
             }
 
             // skip over the opcode to the args
@@ -143,7 +139,7 @@ namespace AdventOfCode.IntCode
 
             if (Debugger.IsAttached)
             {
-            //    Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
+                Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
             }
 
             // dereference the args
@@ -165,7 +161,7 @@ namespace AdventOfCode.IntCode
 
             if (Debugger.IsAttached)
             {
-           //     Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
+                Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
             }
 
             // invoke the action, which may change the program or the pointer
@@ -173,7 +169,17 @@ namespace AdventOfCode.IntCode
 
             // skip the args to the next instruction
             this.Pointer += instruction.Args;
-            return false;
+        }
+
+        /// <summary>
+        /// Peek at what the next OpCode is without advancing the pointer
+        /// </summary>
+        /// <returns>Next opcode</returns>
+        public OpCode PeekNextOpCode()
+        {
+            int rawOpCode = this.Program[this.Pointer];
+            (OpCode opCode, ParameterMode _, ParameterMode _, ParameterMode _) = ParseOpcode(rawOpCode);
+            return opCode;
         }
 
         /// <summary>
