@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using System.Linq;
 using AdventOfCode.IntCode;
 
 namespace AdventOfCode
@@ -11,28 +10,20 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            var stdin = new Queue<int>(new[] { 1 });
-            var stdout = new StringBuilder();
-
-            var vm = new IntCodeEmulator(input, stdin, stdout);
+            var vm = new IntCodeEmulator(input);
+            vm.StdIn.Enqueue(1);
             vm.Execute();
 
-            string result = stdout.ToString();
-
-            return int.Parse(result);
+            return vm.StdOut.Last();
         }
 
         public int Part2(string[] input)
         {
-            var stdin = new Queue<int>(new[] { 5 });
-            var stdout = new StringBuilder();
-
-            var vm = new IntCodeEmulator(input, stdin, stdout);
+            var vm = new IntCodeEmulator(input);
+            vm.StdIn.Enqueue(5);
             vm.Execute();
 
-            string result = stdout.ToString();
-
-            return int.Parse(result);
+            return vm.StdOut.Last();
         }
     }
 }
