@@ -1,4 +1,5 @@
-using System.IO;
+﻿using System.IO;
+using AdventOfCode.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -47,16 +48,6 @@ namespace AdventOfCode.Tests
 
             var result = solver.Part1(GetRealInput());
             output.WriteLine($"Day 8 - Part 1 - {result}");
-
-            Assert.Equal(expected, result);
-        }
-
-        [Fact]
-        public void Part2_SampleInput_ProducesCorrectResponse()
-        {
-            var expected = -1;
-
-            var result = solver.Part2(GetSampleInput());
 
             Assert.Equal(expected, result);
         }
