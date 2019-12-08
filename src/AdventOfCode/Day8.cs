@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AdventOfCode.Utilities;
 using MoreLinq;
@@ -11,67 +10,43 @@ namespace AdventOfCode
     /// </summary>
     public class Day8
     {
+        private const int Width = 25;
+        private const int Height = 6;
+
         public int Part1(string[] input)
         {
             string image = input[0];
-            int minZeroes = int.MaxValue;
-            int result = int.MinValue;
+            char[] minLayer = image.Batch(Width * Height)
+                                   .MinBy(layer => layer.Count(c => c == '0'))
+                                   .First()
+                                   .ToArray();
 
-            for (int i = 0; i < image.Length; i += 25 * 6)
-            {
-                string layer = new string(image.Skip(i).Take(25 * 6).ToArray());
-
-                int zeroes = layer.Count(l => l == '0');
-
-                if (zeroes < minZeroes)
-                {
-                    minZeroes = zeroes;
-                    result = layer.Count(l => l == '1') * layer.Count(l => l == '2');
-                }
-            }
-
-            return result;
+            return minLayer.Count(c => c == '1') * minLayer.Count(c => c == '2');
         }
 
-        public int Part2(string[] input)
+        public string Part2(string[] input)
         {
             string image = input[0];
+            char[,] output = new char[Height, Width];
 
-            string[] layers = image.Batch(25 * 6).Select(b => new string(b.ToArray())).ToArray();
-            List<List<string>> layerRows = new List<List<string>>(layers.Length);
-            char[,] output = new char[6,25];
+            string[] layers = image.Batch(Width * Height).Select(b => new string(b.ToArray())).ToArray();
 
-            foreach (string layer in layers)
+            // 3d representation of (z,y,x) of each pixel in each layer/row/column
+            List<List<char[]>> layerRows = layers.Select(layer => layer.Batch(Width)
+                                                                       .Select(b => b.ToArray())
+                                                                       .ToList())
+                                                 .ToList();
+
+            for (int x = 0; x < Width; x++)
             {
-                var rows = layer.Batch(25).Select(b => new string(b.ToArray())).ToList();
-                layerRows.Add(rows);
-            }
-
-            for (int x = 0; x < 25; x++)
-            {
-                for (int y = 0; y < 6; y++)
+                for (int y = 0; y < Height; y++)
                 {
-                    var colour = layerRows.Select(l => l[y][x]).First(c => c != '2') == '1' ? 'B' : ' ';
-                    output[y, x] = colour;
+                    var colour = layerRows.Select(l => l[y][x]).First(c => c != '2');
+                    output[y, x] = colour == '1' ? 'B' : ' ';
                 }
             }
 
-            output.Print();
-
-            return int.MinValue;
-        }
-
-        private static string[] BuildRows(string layer)
-        {   
-            string[] rows = new string[6];
-
-            for (int j = 0; j < layer.Length; j += 6)
-            {
-                string row = new string(layer.Skip(j).Take(6).ToArray());
-                rows[j % 6] = row;
-            }
-
-            return rows;
+            return output.Print();
         }
     }
 }

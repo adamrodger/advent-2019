@@ -95,18 +95,15 @@
             }
         }
 
-        public static void Print<T>(this T[,] grid)
+        public static string Print<T>(this T[,] grid)
         {
-            if (!Debugger.IsAttached)
-            {
-                return;
-            }
-
             var builder = new StringBuilder(grid.GetLength(0) * (grid.GetLength(1) + Environment.NewLine.Length));
             grid.ForEach(cell => builder.Append(cell), () => builder.AppendLine());
             builder.AppendLine();
 
-            Debug.Write(builder.ToString());
+            string result = builder.ToString();
+            Debug.Write(result);
+            return result;
         }
 
         public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key) where TValue : new()
