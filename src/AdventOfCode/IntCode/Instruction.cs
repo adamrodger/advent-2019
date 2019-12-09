@@ -20,9 +20,9 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Instruction action of (a, b, c), where some or all of the 3 args may be ignored
         /// </summary>
-        public Action<int, int, int> Action { get; }
+        public Action<long, long, long> Action { get; }
 
-        public Instruction(OpCode opCode, int args, Action<int, int, int> action)
+        public Instruction(OpCode opCode, int args, Action<long, long, long> action)
         {
             this.OpCode = opCode;
             this.Args = args;

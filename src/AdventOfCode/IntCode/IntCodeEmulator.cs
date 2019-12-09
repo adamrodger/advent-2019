@@ -24,17 +24,17 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Program instructions
         /// </summary>
-        public int[] Program { get; }
+        public long[] Program { get; }
 
         /// <summary>
         /// Instruction pointer
         /// </summary>
-        public int Pointer { get; private set; }
+        public long Pointer { get; private set; }
 
         /// <summary>
         /// Program result (in register 0)
         /// </summary>
-        public int Result => this.Program[0];
+        public int Result => (int)this.Program[0];
 
         /// <summary>
         /// The VM has halted
@@ -51,7 +51,7 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Noun
         {
-            get => this.Program[1];
+            get => (int)this.Program[1];
             set => this.Program[1] = value;
         }
 
@@ -60,19 +60,19 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Verb
         {
-            get => this.Program[2];
+            get => (int)this.Program[2];
             set => this.Program[2] = value;
         }
 
         /// <summary>
         /// Standard input
         /// </summary>
-        public Queue<int> StdIn { get; }
+        public Queue<long> StdIn { get; }
 
         /// <summary>
         /// Standard output
         /// </summary>
-        public Queue<int> StdOut { get; }
+        public Queue<long> StdOut { get; }
 
         /// <summary>
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
@@ -80,9 +80,9 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         public IntCodeEmulator(IReadOnlyList<string> program)
         {
-            this.Program = program[0].Numbers();
-            this.StdIn = new Queue<int>();
-            this.StdOut = new Queue<int>();
+            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 2).ToArray();
+            this.StdIn = new Queue<long>();
+            this.StdOut = new Queue<long>();
             this.Pointer = 0;
 
             this.Instructions = new[]
@@ -115,7 +115,7 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public void Step()
         {
-            int rawOpCode = this.Program[this.Pointer];
+            long rawOpCode = this.Program[this.Pointer];
 
             if (rawOpCode == (int) OpCode.Halt)
             {
@@ -135,7 +135,7 @@ namespace AdventOfCode.IntCode
 
             // get the instruction and args
             Instruction instruction = this.Instructions[opCode];
-            int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
+            long[] args = this.Program.Skip((int)this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
             if (Debugger.IsAttached)
             {
@@ -177,7 +177,7 @@ namespace AdventOfCode.IntCode
         /// <returns>Next opcode</returns>
         public OpCode PeekNextOpCode()
         {
-            int rawOpCode = this.Program[this.Pointer];
+            long rawOpCode = this.Program[this.Pointer];
             (OpCode opCode, ParameterMode _, ParameterMode _, ParameterMode _) = ParseOpcode(rawOpCode);
             return opCode;
         }
@@ -187,14 +187,14 @@ namespace AdventOfCode.IntCode
         /// </summary>
         /// <param name="rawOpCode">Raw opcode value</param>
         /// <returns></returns>
-        private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(int rawOpCode)
+        private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(long rawOpCode)
         {
             if (rawOpCode < 100)
             {
                 return ((OpCode)rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
             }
 
-            int opCode = rawOpCode % 100;
+            long opCode = rawOpCode % 100;
 
             string s = rawOpCode.ToString().PadLeft(5, '0');
 

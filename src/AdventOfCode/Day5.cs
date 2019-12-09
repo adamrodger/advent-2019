@@ -14,7 +14,7 @@ namespace AdventOfCode
             vm.StdIn.Enqueue(1);
             vm.Execute();
 
-            return vm.StdOut.Last();
+            return (int)vm.StdOut.Last();
         }
 
         public int Part2(string[] input)
@@ -23,7 +23,7 @@ namespace AdventOfCode
             vm.StdIn.Enqueue(5);
             vm.Execute();
 
-            return vm.StdOut.Last();
+            return (int)vm.StdOut.Last();
         }
     }
 }
