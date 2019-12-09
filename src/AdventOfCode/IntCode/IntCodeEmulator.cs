@@ -75,6 +75,9 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public Queue<long> StdOut { get; }
 
+        /// <summary>
+        /// Offset for relative-mode parameters
+        /// </summary>
         public long RelativeBase { get; private set; }
 
         /// <summary>
@@ -83,7 +86,7 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         public IntCodeEmulator(IReadOnlyList<string> program)
         {
-            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 100).ToArray();
+            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 2).ToArray();
             this.StdIn = new Queue<long>();
             this.StdOut = new Queue<long>();
             this.Pointer = 0;
@@ -156,7 +159,7 @@ namespace AdventOfCode.IntCode
 
             if (Debugger.IsAttached)
             {
-                Debug.Write($"{string.Join("\t\t", args.Select(a => a.ToString().PadRight(15)))}\t\t\t|");
+                Debug.Write($"{string.Join("\t\t", args.Select(a => a.ToString().PadRight(15)))}");
             }
 
             // invoke the action, which may change the program or the pointer
@@ -164,7 +167,7 @@ namespace AdventOfCode.IntCode
 
             if (Debugger.IsAttached)
             {
-                Debug.WriteLine($"{this.RelativeBase}");
+                Debug.WriteLine($"\t\t\t| {this.RelativeBase}");
             }
 
             // skip the args to the next instruction
@@ -174,42 +177,39 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Dereference the arguments depending on the parameter mode
         /// </summary>
+        /// <param name="opCode">Current opcode</param>
+        /// <param name="args">Args to modify</param>
+        /// <param name="modeA">Mode for arg A</param>
+        /// <param name="modeB">Mode for arg B</param>
+        /// <param name="modeC">Mode for arg C</param>
         private void DereferenceArguments(OpCode opCode, long[] args, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC)
         {
-            if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
+            long offsetA = modeA == ParameterMode.Relative ? this.RelativeBase : 0;
+            long offsetB = modeB == ParameterMode.Relative ? this.RelativeBase : 0;
+            long offsetC = modeC == ParameterMode.Relative ? this.RelativeBase : 0;
+
+            if (modeA != ParameterMode.Immediate && args[0] != Unused)
             {
-                args[0] = this.Program[args[0]];
+                if (opCode == OpCode.Input)
+                {
+                    // input arg always refers to a memory location, don't dereference
+                    args[0] = args[0] + offsetA;
+                }
+                else
+                {
+                    args[0] = this.Program[args[0] + offsetA];
+                }
             }
 
-            if (modeB == ParameterMode.Position && args[1] != Unused)
+            if (modeB != ParameterMode.Immediate && args[1] != Unused)
             {
-                args[1] = this.Program[args[1]];
+                args[1] = this.Program[args[1] + offsetB];
             }
 
-            if (modeC == ParameterMode.Position && args[2] != Unused)
+            if (modeC != ParameterMode.Immediate && args[2] != Unused)
             {
-                // this can't actually happen I don't think - outputs are always to a particular address
-                //args[2] = this.Program[args[2]];
-            }
-
-            if (modeA == ParameterMode.Relative && args[0] != Unused && opCode == OpCode.Input)
-            {
-                args[0] = args[0] + this.RelativeBase;
-            }
-
-            if (modeA == ParameterMode.Relative && args[0] != Unused && opCode != OpCode.Input)
-            {
-                args[0] = this.Program[args[0] + this.RelativeBase];
-            }
-
-            if (modeB == ParameterMode.Relative && args[1] != Unused)
-            {
-                args[1] = this.Program[args[1] + this.RelativeBase];
-            }
-
-            if (modeC == ParameterMode.Relative && args[2] != Unused)
-            {
-                args[2] = args[2] + this.RelativeBase;
+                // don't dereference C because it's always a memory location destination (currently...)
+                args[2] = args[2] + offsetC;
             }
         }
 
@@ -231,16 +231,9 @@ namespace AdventOfCode.IntCode
         /// <returns></returns>
         private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(long rawOpCode)
         {
-            if (rawOpCode < 100)
-            {
-                return ((OpCode)rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
-            }
-
             long opCode = rawOpCode % 100;
-
             string s = rawOpCode.ToString().PadLeft(5, '0');
 
-            // this is awful, fix later
             return ((OpCode)opCode,
                     (ParameterMode)Enum.Parse(typeof(ParameterMode), s[2].ToString()),
                     (ParameterMode)Enum.Parse(typeof(ParameterMode), s[1].ToString()),
