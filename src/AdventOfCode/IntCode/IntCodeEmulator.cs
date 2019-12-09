@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
@@ -14,7 +15,7 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Indicates that a parameter is unused in an operation
         /// </summary>
-        private const int Unused = -1;
+        private const int Unused = -1234567;
 
         /// <summary>
         /// Instruction map
@@ -24,17 +25,17 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Program instructions
         /// </summary>
-        public int[] Program { get; }
+        public long[] Program { get; }
 
         /// <summary>
         /// Instruction pointer
         /// </summary>
-        public int Pointer { get; private set; }
+        public long Pointer { get; private set; }
 
         /// <summary>
         /// Program result (in register 0)
         /// </summary>
-        public int Result => this.Program[0];
+        public int Result => (int)this.Program[0];
 
         /// <summary>
         /// The VM has halted
@@ -51,7 +52,7 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Noun
         {
-            get => this.Program[1];
+            get => (int)this.Program[1];
             set => this.Program[1] = value;
         }
 
@@ -60,19 +61,24 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public int Verb
         {
-            get => this.Program[2];
+            get => (int)this.Program[2];
             set => this.Program[2] = value;
         }
 
         /// <summary>
         /// Standard input
         /// </summary>
-        public Queue<int> StdIn { get; }
+        public Queue<long> StdIn { get; }
 
         /// <summary>
         /// Standard output
         /// </summary>
-        public Queue<int> StdOut { get; }
+        public Queue<long> StdOut { get; }
+
+        /// <summary>
+        /// Offset for relative-mode parameters
+        /// </summary>
+        public long RelativeBase { get; private set; }
 
         /// <summary>
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
@@ -80,10 +86,11 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         public IntCodeEmulator(IReadOnlyList<string> program)
         {
-            this.Program = program[0].Numbers();
-            this.StdIn = new Queue<int>();
-            this.StdOut = new Queue<int>();
+            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 2).ToArray();
+            this.StdIn = new Queue<long>();
+            this.StdOut = new Queue<long>();
             this.Pointer = 0;
+            this.RelativeBase = 0;
 
             this.Instructions = new[]
             {
@@ -96,6 +103,7 @@ namespace AdventOfCode.IntCode
                 new Instruction(OpCode.JumpNZ,     2,    (a, b, c) => this.Pointer = a != 0 ? b - 2 : this.Pointer), // take off 2 to allow pointer to jump after
                 new Instruction(OpCode.LessThan,   3,    (a, b, c) => this.Program[c] = a < b ? 1 : 0),
                 new Instruction(OpCode.Equal,      3,    (a, b, c) => this.Program[c] = a == b ? 1 : 0),
+                new Instruction(OpCode.Relative,   1,    (a, b, c) => this.RelativeBase += a),
             }.ToDictionary(o => o.OpCode);
         }
 
@@ -115,7 +123,7 @@ namespace AdventOfCode.IntCode
         /// </summary>
         public void Step()
         {
-            int rawOpCode = this.Program[this.Pointer];
+            long rawOpCode = this.Program[this.Pointer];
 
             if (rawOpCode == (int) OpCode.Halt)
             {
@@ -135,40 +143,74 @@ namespace AdventOfCode.IntCode
 
             // get the instruction and args
             Instruction instruction = this.Instructions[opCode];
-            int[] args = this.Program.Skip(this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
+            long[] args = this.Program.Skip((int)this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
             if (Debugger.IsAttached)
             {
-                Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t{string.Join("\t\t", args.Select(a => a.ToString().PadRight(10)))}\t\t\t|||\t\t\t");
+                Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t");
+                Debug.Write($"{args[0].ToString().PadRight(10)}{modeA.ToString()[0]}\t\t\t");
+                Debug.Write($"{args[1].ToString().PadRight(10)}{modeB.ToString()[0]}\t\t\t");
+                Debug.Write($"{args[2].ToString().PadRight(10)}{modeC.ToString()[0]}\t\t\t");
+                Debug.Write("|||\t\t\t");
             }
 
             // dereference the args
-            if (modeA == ParameterMode.Position && args[0] != Unused && opCode != OpCode.Input) // input can never be immediate
-            {
-                args[0] = this.Program[args[0]];
-            }
-
-            if (modeB == ParameterMode.Position && args[1] != Unused)
-            {
-                args[1] = this.Program[args[1]];
-            }
-
-            if (modeC == ParameterMode.Position && args[2] != Unused)
-            {
-                // this can't actually happen I don't think - outputs are always to a particular address
-                //args[2] = this.Program[args[2]];
-            }
+            this.DereferenceArguments(opCode, args, modeA, modeB, modeC);
 
             if (Debugger.IsAttached)
             {
-                Debug.WriteLine($"{string.Join("\t\t", args.Where(a => a != Unused).Select(a => a.ToString().PadRight(10)))}");
+                Debug.Write($"{string.Join("\t\t", args.Select(a => a.ToString().PadRight(15)))}");
             }
 
             // invoke the action, which may change the program or the pointer
             instruction.Action.Invoke(args[0], args[1], args[2]);
 
+            if (Debugger.IsAttached)
+            {
+                Debug.WriteLine($"\t\t\t| {this.RelativeBase}");
+            }
+
             // skip the args to the next instruction
             this.Pointer += instruction.Args;
+        }
+
+        /// <summary>
+        /// Dereference the arguments depending on the parameter mode
+        /// </summary>
+        /// <param name="opCode">Current opcode</param>
+        /// <param name="args">Args to modify</param>
+        /// <param name="modeA">Mode for arg A</param>
+        /// <param name="modeB">Mode for arg B</param>
+        /// <param name="modeC">Mode for arg C</param>
+        private void DereferenceArguments(OpCode opCode, long[] args, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC)
+        {
+            long offsetA = modeA == ParameterMode.Relative ? this.RelativeBase : 0;
+            long offsetB = modeB == ParameterMode.Relative ? this.RelativeBase : 0;
+            long offsetC = modeC == ParameterMode.Relative ? this.RelativeBase : 0;
+
+            if (modeA != ParameterMode.Immediate && args[0] != Unused)
+            {
+                if (opCode == OpCode.Input)
+                {
+                    // input arg always refers to a memory location, don't dereference
+                    args[0] = args[0] + offsetA;
+                }
+                else
+                {
+                    args[0] = this.Program[args[0] + offsetA];
+                }
+            }
+
+            if (modeB != ParameterMode.Immediate && args[1] != Unused)
+            {
+                args[1] = this.Program[args[1] + offsetB];
+            }
+
+            if (modeC != ParameterMode.Immediate && args[2] != Unused)
+            {
+                // don't dereference C because it's always a memory location destination (currently...)
+                args[2] = args[2] + offsetC;
+            }
         }
 
         /// <summary>
@@ -177,7 +219,7 @@ namespace AdventOfCode.IntCode
         /// <returns>Next opcode</returns>
         public OpCode PeekNextOpCode()
         {
-            int rawOpCode = this.Program[this.Pointer];
+            long rawOpCode = this.Program[this.Pointer];
             (OpCode opCode, ParameterMode _, ParameterMode _, ParameterMode _) = ParseOpcode(rawOpCode);
             return opCode;
         }
@@ -187,22 +229,15 @@ namespace AdventOfCode.IntCode
         /// </summary>
         /// <param name="rawOpCode">Raw opcode value</param>
         /// <returns></returns>
-        private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(int rawOpCode)
+        private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(long rawOpCode)
         {
-            if (rawOpCode < 100)
-            {
-                return ((OpCode)rawOpCode, ParameterMode.Position, ParameterMode.Position, ParameterMode.Position);
-            }
-
-            int opCode = rawOpCode % 100;
-
+            long opCode = rawOpCode % 100;
             string s = rawOpCode.ToString().PadLeft(5, '0');
 
-            // this is awful, fix later
             return ((OpCode)opCode,
-                    s[2] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
-                    s[1] == '1' ? ParameterMode.Immediate : ParameterMode.Position,
-                    s[0] == '1' ? ParameterMode.Immediate : ParameterMode.Position);
+                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[2].ToString()),
+                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[1].ToString()),
+                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[0].ToString()));
         }
     }
 }

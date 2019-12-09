@@ -27,7 +27,7 @@ namespace AdventOfCode
 
                     emulator.Execute();
 
-                    output = emulator.StdOut.Dequeue();
+                    output = (int)emulator.StdOut.Dequeue();
                 }
 
                 if (output > max)
@@ -74,7 +74,7 @@ namespace AdventOfCode
                         waiting.Enqueue(vm);
                     }
 
-                    output = vm.StdOut.Dequeue();
+                    output = (int)vm.StdOut.Dequeue();
                 }
 
                 if (output > max)
