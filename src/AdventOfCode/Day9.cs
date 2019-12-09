@@ -1,4 +1,5 @@
-using System;
+﻿using System.Linq;
+using AdventOfCode.IntCode;
 
 namespace AdventOfCode
 {
@@ -7,24 +8,22 @@ namespace AdventOfCode
     /// </summary>
     public class Day9
     {
-        public int Part1(string[] input)
+        public long Part1(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 1 not implemented");
-            }
+            var vm = new IntCodeEmulator(input);
+            vm.StdIn.Enqueue(1);
+            vm.Execute();
 
-            return 0;
+            return vm.StdOut.Last();
         }
 
-        public int Part2(string[] input)
+        public long Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
+            var vm = new IntCodeEmulator(input);
+            vm.StdIn.Enqueue(2);
+            vm.Execute();
 
-            return 0;
+            return vm.StdOut.Last();
         }
     }
 }

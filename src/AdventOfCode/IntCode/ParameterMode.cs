@@ -13,6 +13,11 @@
         /// <summary>
         /// The parameter represents a literal value
         /// </summary>
-        Immediate = 1
+        Immediate = 1,
+
+        /// <summary>
+        /// The parameter represents a point to a memory address relative to a known offset
+        /// </summary>
+        Relative = 2
     }
 }

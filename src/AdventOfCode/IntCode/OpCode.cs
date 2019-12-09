@@ -49,5 +49,10 @@
         /// c = a == b ? 1 : 0
         /// </summary>
         Equal = 8,
+
+        /// <summary>
+        /// relative base += a
+        /// </summary>
+        Relative = 9,
     }
 }
