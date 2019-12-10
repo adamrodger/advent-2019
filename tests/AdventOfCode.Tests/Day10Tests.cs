@@ -74,7 +74,7 @@ namespace AdventOfCode.Tests
         {
             var expected = 802;
 
-            var result = solver.Part2(GetSampleInput());
+            var result = solver.Part2(GetSampleInput(), 11, 13);
 
             Assert.Equal(expected, result);
         }
