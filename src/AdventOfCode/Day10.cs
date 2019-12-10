@@ -48,7 +48,7 @@ namespace AdventOfCode
         /// double radians = Math.Atan2(destY, destX);
         /// double degrees = radians * (180 / Math.PI);
         ///
-        /// Console.WriteLine($"{degrees}"); // should be 45 degrees
+        /// Console.WriteLine($"{degrees}"); // should be 45 degrees because (1,1) is directly north-east from (0,0)
         /// </example>
         public int Part2(string[] input, int startX = 20, int startY = 18) // start x/y calculated from part 1
         {
@@ -56,7 +56,7 @@ namespace AdventOfCode
 
             while (true)
             {
-                // get everything currently in sight, order them by their angle to 'directly north' and cancel them
+                // get everything currently in sight, order them by their angle to 'directly north' and destroy them in order
                 (int x, int y)[] inSight = InSight(startX, startY, input).OrderBy(tuple => DegreesFromNorth(tuple.x, tuple.y, startX, startY)).ToArray();
 
                 foreach ((int x, int y) in inSight)
@@ -74,15 +74,19 @@ namespace AdventOfCode
                 }
             }
 
-            // guessed 1218, too high. I think it's because y and x are inverted, so need my 'north' is probably pointing sideways instead of directly up
+            // guessed 1218, too high. I think it's because y and x are inverted, so my 'north' is probably pointing sideways instead of directly up
             // guessed 810, still too high. That means it's really near the top-left I think (i.e. it's lower than 8,10)
         }
 
+        /// <summary>
+        /// Find all the asteroids which are in sight of the given source co-ordinates
+        /// </summary>
+        /// <returns>Locations of all asteroids visible from the source co-ordinates</returns>
         private static IEnumerable<(int x, int y)> InSight(int srcX, int srcY, string[] input)
         {
             char[,] grid = input.ToGrid();
 
-            // check every other point on the grid to see if it's reachable from src x/y
+            // check every other asteroid on the grid to see if it's reachable from src x/y
             for (int destY = 0; destY < grid.GetLength(0); destY++)
             {
                 for (int destX = 0; destX < grid.GetLength(1); destX++)
@@ -96,17 +100,17 @@ namespace AdventOfCode
                     bool alreadyHit = false;
                     int x = srcX;
                     int y = srcY;
-                    var vector = GetSimplestVector(x, y, destX, destY);
+                    (int x, int y) vector = GetSimplestVector(x, y, destX, destY);
 
                     // follow the vector and cross out everything after the first collision
                     while (x >= 0 && x < grid.GetLength(1) && y >= 0 && y < grid.GetLength(0))
                     {
                         if (!(x == srcX && y == srcY) && grid[y, x] == '#')
                         {
-                            // found an asteroid we can potentially see
+                            // found an asteroid on this vector
                             if (alreadyHit)
                             {
-                                // obscured by an earlier asteroid, cross it out
+                                // obscured by a closer asteroid on the same vector, cross it out
                                 grid[y, x] = 'X';
                             }
 
@@ -119,6 +123,7 @@ namespace AdventOfCode
                 }
             }
 
+            // yield all the locations that contain asteroids and aren't obscured by closer ones on the same vector
             for (int y = 0; y < grid.GetLength(0); y++)
             {
                 for (int x = 0; x < grid.GetLength(1); x++)
@@ -132,22 +137,27 @@ namespace AdventOfCode
         }
 
         /// <summary>
-        /// Get a simplified vector between two points
+        /// Get the simplest vector between (x1,y1) and (x2,y2)
         /// </summary>
+        /// <remarks>
+        /// The vector is simplified using the greatest common divisor, e.g. the vector from (0,0) to (4,4) isn't (4,4), it's (1,1)
+        /// </remarks>
         private static (int x, int y) GetSimplestVector(int x1, int y1, int x2, int y2)
         {
             int dx = x2 - x1;
             int dy = y2 - y1;
 
-            // need to simplify it with greatest common divisor, e.g. the vector from (0,0) to (4,4) isn't (4,4), it's (1,1)
             int gcd = GCD(dx, dy);
 
             return (dx / gcd, dy / gcd);
         }
 
         /// <summary>
-        /// Mostly stolen from http://csharphelper.com/blog/2014/08/calculate-the-greatest-common-divisor-gcd-and-least-common-multiple-lcm-of-two-integers-in-c/
+        /// Get the greater common divisor between a and b
         /// </summary>
+        /// <remarks>
+        /// Heavily based on http://csharphelper.com/blog/2014/08/calculate-the-greatest-common-divisor-gcd-and-least-common-multiple-lcm-of-two-integers-in-c/
+        /// </remarks>
         private static int GCD(int a, int b)
         {
             a = Math.Abs(a);
@@ -168,6 +178,9 @@ namespace AdventOfCode
             }
         }
 
+        /// <summary>
+        /// Find the angle from north in degrees between (x1,y1) and (x2,y2)
+        /// </summary>
         private static double DegreesFromNorth(int x1, int y1, int x2, int y2)
         {
             double radians = Math.Atan2(y2 - y1, x2 - x1);
@@ -175,7 +188,7 @@ namespace AdventOfCode
 
             if (degrees < 0)
             {
-                // goes negative for like 270deg around is actually -90deg
+                // goes negative for >180deg - e.g. 270deg is -90deg - so correct here
                 degrees += 360;
             }
 
