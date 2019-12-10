@@ -139,5 +139,21 @@
                 yield return grid[y + 1, x];
             }
         }
+
+        public static char[,] ToGrid(this string[] input)
+        {
+            // y,x remember, not x,y
+            char[,] grid = new char[input.Length, input[0].Length];
+
+            for (int y = 0; y < input.Length; y++)
+            {
+                for (int x = 0; x < input[y].Length; x++)
+                {
+                    grid[y, x] = input[y][x];
+                }
+            }
+
+            return grid;
+        }
     }
 }
