@@ -25,23 +25,33 @@ namespace AdventOfCode.Tests
         {
             return new string[]
             {
-                "......#.#.",
-                "#..#.#....",
-                "..#######.",
-                ".#.#.###..",
-                ".#..#.....",
-                "..#....#.#",
-                "#..#....#.",
-                ".##.#..###",
-                "##...#..#.",
-                ".#....####",
+                ".#..##.###...#######",
+                "##.############..##.",
+                ".#.######.########.#",
+                ".###.#######.####.#.",
+                "#####.##.#.##.###.##",
+                "..#####..#.#########",
+                "####################",
+                "#.####....###.#.#.##",
+                "##.#################",
+                "#####.##.###..####..",
+                "..######..##.#######",
+                "####.##.####...##..#",
+                ".#####..#.######.###",
+                "##...#.##########...",
+                "#.##########.#######",
+                ".####.#.###.###.#.##",
+                "....##.##.###..#####",
+                ".#.#.###########.###",
+                "#.#.#.#####.####.###",
+                "###.##.####.##.#..##",
             };
         }
 
         [Fact]
         public void Part1_SampleInput_ProducesCorrectResponse()
         {
-            var expected = 33;
+            var expected = 210;
 
             var result = solver.Part1(GetSampleInput());
 
@@ -62,7 +72,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 802;
 
             var result = solver.Part2(GetSampleInput());
 
@@ -72,7 +82,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 706;
 
             var result = solver.Part2(GetRealInput());
             output.WriteLine($"Day 10 - Part 2 - {result}");

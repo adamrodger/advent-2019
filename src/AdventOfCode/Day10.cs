@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -20,7 +21,7 @@ namespace AdventOfCode
                 {
                     if (grid[y, x] != '#') continue; // only calculate from src asteroids
 
-                    int inSight = InSight(x, y, input);
+                    int inSight = InSight(x, y, input).Count();
 
                     if (inSight > result)
                     {
@@ -35,17 +36,49 @@ namespace AdventOfCode
             // guessed 288 -- too high, but says it's someone else's answer weirdly
         }
 
-        public int Part2(string[] input)
+        /// <summary>
+        /// See https://math.stackexchange.com/a/1269056 to get the angle between two lines. Something about abs and tan
+        ///
+        /// That page got me to Math.Atan2 which calculates the angle from 0,0 to a given point: https://docs.microsoft.com/en-us/dotnet/api/system.math.atan2
+        /// </summary>
+        /// <example>
+        /// double destX = 1;
+        /// double destY = 1;
+        ///
+        /// double radians = Math.Atan2(destY, destX);
+        /// double degrees = radians * (180 / Math.PI);
+        ///
+        /// Console.WriteLine($"{degrees}"); // should be 45 degrees
+        /// </example>
+        public int Part2(string[] input, int startX = 20, int startY = 18) // start x/y calculated from part 1
         {
-            foreach (string line in input)
+            int counter = 0;
+
+            while (true)
             {
-                throw new NotImplementedException("Part 2 not implemented");
+                // get everything currently in sight, order them by their angle to 'directly north' and cancel them
+                (int x, int y)[] inSight = InSight(startX, startY, input).OrderBy(tuple => DegreesFromNorth(tuple.x, tuple.y, startX, startY)).ToArray();
+
+                foreach ((int x, int y) in inSight)
+                {
+                    char[] chars = input[y].ToCharArray();
+                    chars[x] = '.'; // destroyed
+                    input[y] = new string(chars); // this is gonna be slow....
+
+                    counter++;
+
+                    if (counter == 200)
+                    {
+                        return (x * 100) + y;
+                    }
+                }
             }
 
-            return 0;
+            // guessed 1218, too high. I think it's because y and x are inverted, so need my 'north' is probably pointing sideways instead of directly up
+            // guessed 810, still too high. That means it's really near the top-left I think (i.e. it's lower than 8,10)
         }
 
-        private static int InSight(int srcX, int srcY, string[] input)
+        private static IEnumerable<(int x, int y)> InSight(int srcX, int srcY, string[] input)
         {
             char[,] grid = input.ToGrid();
 
@@ -86,7 +119,16 @@ namespace AdventOfCode
                 }
             }
 
-            return grid.Where((_, __, c) => c == '#').Count() - 1;
+            for (int y = 0; y < grid.GetLength(0); y++)
+            {
+                for (int x = 0; x < grid.GetLength(1); x++)
+                {
+                    if (grid[y, x] == '#' && !(x == srcX && y == srcY))
+                    {
+                        yield return (x, y);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -124,6 +166,28 @@ namespace AdventOfCode
                 a = b;
                 b = remainder;
             }
+        }
+
+        private static double DegreesFromNorth(int x1, int y1, int x2, int y2)
+        {
+            double radians = Math.Atan2(y2 - y1, x2 - x1);
+            double degrees = radians * (180 / Math.PI);
+
+            if (degrees < 0)
+            {
+                // goes negative for like 270deg around is actually -90deg
+                degrees += 360;
+            }
+
+            // because x and y are flipped for the puzzle grid, rotate 90deg anticlockwise to make it from 'north'
+            degrees -= 90;
+
+            if (degrees < 0)
+            {
+                degrees += 360;
+            }
+
+            return degrees;
         }
     }
 }
