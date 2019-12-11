@@ -9,10 +9,10 @@
 
     public static class Utilities
     {
-        public static int[] Numbers(this string input)
+        public static T[] Numbers<T>(this string input)
         {
             MatchCollection matches = Regex.Matches(input, @"-?\d+");
-            return matches.Cast<Match>().Select(m => m.Value).Select(int.Parse).ToArray();
+            return matches.Cast<Match>().Select(m => m.Value).Select(m => (T)Convert.ChangeType(m, typeof(T))).ToArray();
         }
 
         public static void ForEach<T>(this T[,] grid, Action<T> cellAction, Action lineAction = null)

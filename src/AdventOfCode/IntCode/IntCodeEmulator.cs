@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
 using MoreLinq;
@@ -86,7 +85,7 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         public IntCodeEmulator(IReadOnlyList<string> program)
         {
-            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 2).ToArray();
+            this.Program = program[0].Numbers<long>().Pad(program[0].Length * 2).ToArray();
             this.StdIn = new Queue<long>();
             this.StdOut = new Queue<long>();
             this.Pointer = 0;
@@ -130,10 +129,10 @@ namespace AdventOfCode.IntCode
                 this.Halted = true;
             }
 
-            if (Debugger.IsAttached)
+            /*if (Debugger.IsAttached)
             {
                 Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
-            }
+            }*/
 
             // skip over the opcode to the args
             this.Pointer++;
@@ -145,30 +144,30 @@ namespace AdventOfCode.IntCode
             Instruction instruction = this.Instructions[opCode];
             long[] args = this.Program.Skip((int)this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
-            if (Debugger.IsAttached)
+            /*if (Debugger.IsAttached)
             {
                 Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t");
                 Debug.Write($"{args[0].ToString().PadRight(10)}{modeA.ToString()[0]}\t\t\t");
                 Debug.Write($"{args[1].ToString().PadRight(10)}{modeB.ToString()[0]}\t\t\t");
                 Debug.Write($"{args[2].ToString().PadRight(10)}{modeC.ToString()[0]}\t\t\t");
                 Debug.Write("|||\t\t\t");
-            }
+            }*/
 
             // dereference the args
             this.DereferenceArguments(opCode, args, modeA, modeB, modeC);
 
-            if (Debugger.IsAttached)
+            /*if (Debugger.IsAttached)
             {
                 Debug.Write($"{string.Join("\t\t", args.Select(a => a.ToString().PadRight(15)))}");
-            }
+            }*/
 
             // invoke the action, which may change the program or the pointer
             instruction.Action.Invoke(args[0], args[1], args[2]);
 
-            if (Debugger.IsAttached)
+            /*if (Debugger.IsAttached)
             {
                 Debug.WriteLine($"\t\t\t| {this.RelativeBase}");
-            }
+            }*/
 
             // skip the args to the next instruction
             this.Pointer += instruction.Args;
