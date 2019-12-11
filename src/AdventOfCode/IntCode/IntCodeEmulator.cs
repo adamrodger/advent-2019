@@ -86,7 +86,7 @@ namespace AdventOfCode.IntCode
         /// <param name="program">Program instructions</param>
         public IntCodeEmulator(IReadOnlyList<string> program)
         {
-            this.Program = program[0].Numbers().Select(n => (long)n).Pad(program[0].Length * 2).ToArray();
+            this.Program = program[0].Numbers<long>().Pad(program[0].Length * 2).ToArray();
             this.StdIn = new Queue<long>();
             this.StdOut = new Queue<long>();
             this.Pointer = 0;
