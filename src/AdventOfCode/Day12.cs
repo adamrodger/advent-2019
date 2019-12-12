@@ -40,66 +40,41 @@ namespace AdventOfCode
             var yStates = new HashSet<(int, int, int, int, int, int, int, int)>();
             var zStates = new HashSet<(int, int, int, int, int, int, int, int)>();
 
-            while (true)
+            bool xFound = false, yFound = false, zFound = false;
+
+            while (!(xFound && yFound && zFound))
             {
-                // there's got to be a nicer way to build this, but you need equality checking so tuples are nice
-                bool unique = xStates.Add((moons[0].PositionX, moons[1].PositionX, moons[2].PositionX, moons[3].PositionX,
-                                           moons[0].VelocityX, moons[1].VelocityX, moons[2].VelocityX, moons[3].VelocityX));
+                // there's got to be a nicer way to track the state, but you need equality checking so tuples work well
+                xFound = xFound || !xStates.Add((moons[0].Position.X, moons[1].Position.X, moons[2].Position.X, moons[3].Position.X,
+                                                 moons[0].Velocity.X, moons[1].Velocity.X, moons[2].Velocity.X, moons[3].Velocity.X));
 
-                if (!unique)
-                {
-                    break;
-                }
+                yFound = yFound || !yStates.Add((moons[0].Position.Y, moons[1].Position.Y, moons[2].Position.Y, moons[3].Position.Y,
+                                                 moons[0].Velocity.Y, moons[1].Velocity.Y, moons[2].Velocity.Y, moons[3].Velocity.Y));
 
-                // keep going until you find a cycle
-                moons.ForEach(m => m.UpdateVelocity(moons));
-                moons.ForEach(m => m.Move());
-            }
+                zFound = zFound || !zStates.Add((moons[0].Position.Z, moons[1].Position.Z, moons[2].Position.Z, moons[3].Position.Z,
+                                                 moons[0].Velocity.Z, moons[1].Velocity.Z, moons[2].Velocity.Z, moons[3].Velocity.Z));
 
-            // does it matter that we're not resetting state for each one? The interval would still be the same, but from a different starting point, right?
-            while (true)
-            {
-                // there's got to be a nicer way to build this
-                bool unique = yStates.Add((moons[0].PositionY, moons[1].PositionY, moons[2].PositionY, moons[3].PositionY,
-                                           moons[0].VelocityY, moons[1].VelocityY, moons[2].VelocityY, moons[3].VelocityY));
-
-                if (!unique)
-                {
-                    break;
-                }
-
-                // keep going until you find a cycle
-                moons.ForEach(m => m.UpdateVelocity(moons));
-                moons.ForEach(m => m.Move());
-            }
-
-            // lots of copy/paste...
-            while (true)
-            {
-                // there's got to be a nicer way to build this
-                bool unique = zStates.Add((moons[0].PositionZ, moons[1].PositionZ, moons[2].PositionZ, moons[3].PositionZ,
-                                           moons[0].VelocityZ, moons[1].VelocityZ, moons[2].VelocityZ, moons[3].VelocityZ));
-
-                if (!unique)
-                {
-                    break;
-                }
-
-                // keep going until you find a cycle
+                // keep going until you find all the cycles
                 moons.ForEach(m => m.UpdateVelocity(moons));
                 moons.ForEach(m => m.Move());
             }
 
             // so now we've got the intervals from the hashset counts, find the lowest common multiple of all the intervals
 
-            return LCM(xStates.Count, LCM(yStates.Count, zStates.Count));
+            long xyLCM = LCM(xStates.Count, yStates.Count);
+            long xyzLCM = LCM(xyLCM, zStates.Count);
+
+            return xyzLCM;
 
             // guessed 470109376 -- too low -- with xStates.Count * yStates.Count * zStates.Count
         }
 
         /// <summary>
-        /// Stolen from that same maths website as day 10
+        /// Calculates the smallest number which can be divided by both a and b
         /// </summary>
+        /// <remarks>
+        /// Stolen from that same maths website as day 10
+        /// </remarks>
         private static long LCM(long a, long b)
         {
             return a * b / GCD(a, b);
@@ -134,36 +109,31 @@ namespace AdventOfCode
 
     public class Moon
     {
-        public int PositionX { get; set; }
-        public int PositionY { get; set; }
-        public int PositionZ { get; set; }
+        public Point3D Position { get; }
 
-        public int VelocityX { get; set; }
-        public int VelocityY { get; set; }
-        public int VelocityZ { get; set; }
+        public Point3D Velocity { get; }
 
-        public int TotalEnergy => (Math.Abs(PositionX) + Math.Abs(PositionY) + Math.Abs(PositionZ))
-                                * (Math.Abs(VelocityX) + Math.Abs(VelocityY) + Math.Abs(VelocityZ));
+        public int TotalEnergy => (Math.Abs(this.Position.X) + Math.Abs(this.Position.Y) + Math.Abs(this.Position.Z))
+                                * (Math.Abs(this.Velocity.X) + Math.Abs(this.Velocity.Y) + Math.Abs(this.Velocity.Z));
 
         public Moon(int x, int y, int z)
         {
-            this.PositionX = x;
-            this.PositionY = y;
-            this.PositionZ = z;
+            this.Position = new Point3D { X = x, Y = y, Z = z };
+            this.Velocity = new Point3D();
         }
 
         public void UpdateVelocity(ICollection<Moon> moons)
         {
-            this.VelocityX += moons.Count(m => m.PositionX > this.PositionX) - moons.Count(m => m.PositionX < this.PositionX);
-            this.VelocityY += moons.Count(m => m.PositionY > this.PositionY) - moons.Count(m => m.PositionY < this.PositionY);
-            this.VelocityZ += moons.Count(m => m.PositionZ > this.PositionZ) - moons.Count(m => m.PositionZ < this.PositionZ);
+            this.Velocity.X += moons.Count(m => m.Position.X > this.Position.X) - moons.Count(m => m.Position.X < this.Position.X);
+            this.Velocity.Y += moons.Count(m => m.Position.Y > this.Position.Y) - moons.Count(m => m.Position.Y < this.Position.Y);
+            this.Velocity.Z += moons.Count(m => m.Position.Z > this.Position.Z) - moons.Count(m => m.Position.Z < this.Position.Z);
         }
 
         public void Move()
         {
-            this.PositionX += this.VelocityX;
-            this.PositionY += this.VelocityY;
-            this.PositionZ += this.VelocityZ;
+            this.Position.X += this.Velocity.X;
+            this.Position.Y += this.Velocity.Y;
+            this.Position.Z += this.Velocity.Z;
         }
     }
 }
