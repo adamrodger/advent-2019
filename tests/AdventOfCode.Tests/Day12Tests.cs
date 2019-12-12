@@ -30,16 +30,6 @@ namespace AdventOfCode.Tests
         }
 
         [Fact]
-        public void Part1_SampleInput_ProducesCorrectResponse()
-        {
-            var expected = -1;
-
-            var result = solver.Part1(GetSampleInput());
-
-            Assert.Equal(expected, result);
-        }
-
-        [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
             var expected = 6678;
