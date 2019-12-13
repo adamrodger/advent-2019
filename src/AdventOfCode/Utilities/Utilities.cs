@@ -95,6 +95,24 @@
             }
         }
 
+        public static (int x, int y) FindFirst<T>(this T[,] grid, Func<T, bool> predicate)
+        {
+            for (int y = 0; y < grid.GetLength(0); y++)
+            {
+                for (int x = 0; x < grid.GetLength(1); x++)
+                {
+                    T item = grid[y, x];
+
+                    if (predicate(item))
+                    {
+                        return (x, y);
+                    }
+                }
+            }
+
+            return (-1, -1);
+        }
+
         public static string Print<T>(this T[,] grid)
         {
             var builder = new StringBuilder(grid.GetLength(0) * (grid.GetLength(1) + Environment.NewLine.Length));
@@ -102,7 +120,7 @@
             builder.AppendLine();
 
             string result = builder.ToString();
-            Debug.Write(result);
+            Console.Write(result);
             return result;
         }
 

@@ -21,14 +21,6 @@ namespace AdventOfCode.Tests
             return input;
         }
 
-        private static string[] GetSampleInput()
-        {
-            return new string[]
-            {
-
-            };
-        }
-
         [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
