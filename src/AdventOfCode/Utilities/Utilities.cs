@@ -95,6 +95,24 @@
             }
         }
 
+        public static Point2D First<T>(this T[,] grid, Func<T, bool> predicate)
+        {
+            for (int y = 0; y < grid.GetLength(0); y++)
+            {
+                for (int x = 0; x < grid.GetLength(1); x++)
+                {
+                    T item = grid[y, x];
+
+                    if (predicate(item))
+                    {
+                        return new Point2D(x, y);
+                    }
+                }
+            }
+
+            return new Point2D(-1, -1);
+        }
+
         public static string Print<T>(this T[,] grid)
         {
             var builder = new StringBuilder(grid.GetLength(0) * (grid.GetLength(1) + Environment.NewLine.Length));

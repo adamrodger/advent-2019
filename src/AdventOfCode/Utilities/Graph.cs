@@ -1,4 +1,4 @@
-namespace AdventOfCode.Utilities
+﻿namespace AdventOfCode.Utilities
 {
     using System;
     using System.Collections.Generic;
@@ -11,6 +11,11 @@ namespace AdventOfCode.Utilities
     /// <typeparam name="TNode">Type of the node</typeparam>
     public class Graph<TNode>
     {
+        /// <summary>
+        /// Heuristic which uses Manhattan Distance as a heuristic for reaching the destination node on a 2D grid
+        /// </summary>
+        public static Func<Point2D, Point2D, int> ManhattanDistanceHeuristic => (a, b) => Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+
         /// <summary>
         /// Nodes in the graph
         /// </summary>

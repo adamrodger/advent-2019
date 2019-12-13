@@ -2,32 +2,41 @@
 using Xunit;
 using Xunit.Abstractions;
 
+
 namespace AdventOfCode.Tests
 {
-    public class Day3Tests
+    public class Day13Tests
     {
         private readonly ITestOutputHelper output;
-        private readonly Day3 solver;
+        private readonly Day13 solver;
 
-        public Day3Tests(ITestOutputHelper output)
+        public Day13Tests(ITestOutputHelper output)
         {
             this.output = output;
-            this.solver = new Day3();
+            this.solver = new Day13();
         }
 
         private static string[] GetRealInput()
         {
-            string[] input = File.ReadAllLines("inputs/day3.txt");
+            string[] input = File.ReadAllLines("inputs/day13.txt");
             return input;
+        }
+
+        private static string[] GetSampleInput()
+        {
+            return new string[]
+            {
+                
+            };
         }
 
         [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
-            var expected = 1285;
+            var expected = 326;
 
             var result = solver.Part1(GetRealInput());
-            output.WriteLine($"Day 3 - Part 1 - {result}");
+            output.WriteLine($"Day 13 - Part 1 - {result}");
 
             Assert.Equal(expected, result);
         }
@@ -35,10 +44,10 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()
         {
-            var expected = 14228;
+            var expected = 15988;
 
             var result = solver.Part2(GetRealInput());
-            output.WriteLine($"Day 3 - Part 2 - {result}");
+            output.WriteLine($"Day 13 - Part 2 - {result}");
 
             Assert.Equal(expected, result);
         }

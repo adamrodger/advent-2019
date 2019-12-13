@@ -81,6 +81,11 @@ namespace AdventOfCode.IntCode
         public long RelativeBase { get; private set; }
 
         /// <summary>
+        /// Produce verbose logging
+        /// </summary>
+        public bool Verbose { get; set; }
+
+        /// <summary>
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
         /// </summary>
         /// <param name="program">Program instructions</param>
@@ -119,6 +124,17 @@ namespace AdventOfCode.IntCode
         }
 
         /// <summary>
+        /// Execute until the program needs to yield - either because it's halted or requires input
+        /// </summary>
+        public void ExecuteUntilYield()
+        {
+            while (!(this.Halted || this.WaitingForInput))
+            {
+                this.Step();
+            }
+        }
+
+        /// <summary>
         /// Execute one instruction
         /// </summary>
         public void Step()
@@ -130,7 +146,7 @@ namespace AdventOfCode.IntCode
                 this.Halted = true;
             }
 
-            if (Debugger.IsAttached)
+            if (this.Verbose && Debugger.IsAttached)
             {
                 Debug.Write($"{this.Pointer.ToString().PadLeft(5)}:\t\t");
             }
@@ -145,7 +161,7 @@ namespace AdventOfCode.IntCode
             Instruction instruction = this.Instructions[opCode];
             long[] args = this.Program.Skip((int)this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
 
-            if (Debugger.IsAttached)
+            if (this.Verbose && Debugger.IsAttached)
             {
                 Debug.Write($"{instruction.OpCode.ToString().PadRight(12)}\t\t");
                 Debug.Write($"{args[0].ToString().PadRight(10)}{modeA.ToString()[0]}\t\t\t");
@@ -157,7 +173,7 @@ namespace AdventOfCode.IntCode
             // dereference the args
             this.DereferenceArguments(opCode, args, modeA, modeB, modeC);
 
-            if (Debugger.IsAttached)
+            if (this.Verbose && Debugger.IsAttached)
             {
                 Debug.Write($"{string.Join("\t\t", args.Select(a => a.ToString().PadRight(15)))}");
             }
@@ -165,7 +181,7 @@ namespace AdventOfCode.IntCode
             // invoke the action, which may change the program or the pointer
             instruction.Action.Invoke(args[0], args[1], args[2]);
 
-            if (Debugger.IsAttached)
+            if (this.Verbose && Debugger.IsAttached)
             {
                 Debug.WriteLine($"\t\t\t| {this.RelativeBase}");
             }
