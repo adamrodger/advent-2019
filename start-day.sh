@@ -11,6 +11,10 @@ if [[ -z $1 ]]; then
     exit 2
 fi
 
+# make sure repo is up to date
+git fetch
+git checkout -b dev/$1 origin/master
+
 # create solution
 cp src/AdventOfCode/DayXX.cs src/AdventOfCode/Day$1.cs
 sed -i "s/XX/$1/g" src/AdventOfCode/Day$1.cs
