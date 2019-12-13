@@ -95,7 +95,7 @@
             }
         }
 
-        public static (int x, int y) FindFirst<T>(this T[,] grid, Func<T, bool> predicate)
+        public static Point2D First<T>(this T[,] grid, Func<T, bool> predicate)
         {
             for (int y = 0; y < grid.GetLength(0); y++)
             {
@@ -105,12 +105,12 @@
 
                     if (predicate(item))
                     {
-                        return (x, y);
+                        return new Point2D(x, y);
                     }
                 }
             }
 
-            return (-1, -1);
+            return new Point2D(-1, -1);
         }
 
         public static string Print<T>(this T[,] grid)
@@ -120,7 +120,7 @@
             builder.AppendLine();
 
             string result = builder.ToString();
-            Console.Write(result);
+            Debug.Write(result);
             return result;
         }
 
