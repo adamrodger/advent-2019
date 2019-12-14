@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -17,6 +16,7 @@ namespace AdventOfCode
             var got = new Dictionary<string, long>(reactions.Count);
             var needed = new Dictionary<string, long>(reactions.Count);
 
+            // parse reactions
             foreach (string line in input)
             {
                 MatchCollection matches = Regex.Matches(line, @"(\d+) ([A-Z]+)");
@@ -34,20 +34,55 @@ namespace AdventOfCode
                 got[output.chemical] = 0;
             }
 
-            got["ORE"] = 0;
             needed["ORE"] = 0;
-            
             needed["FUEL"] = requiredFuel;
 
-            // recursively work backwards from FUEL, adding required amounts of input for each output
             React("FUEL", reactions, got, needed);
             
             return needed["ORE"];
-
-            // guessed 174729 -- too low
         }
 
-        public void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, long> got, Dictionary<string, long> needed)
+        public long Part2(string[] input)
+        {
+            const long target = 1000000000000;
+
+            // establish rough upper bound as power of 2
+            long max = 1;
+            while (this.Part1(input, max) < target)
+            {
+                max *= 2;
+            }
+
+            // converge on correct answer using binary chop
+            long min = 0;
+            while (min < max - 1)
+            {
+                long mid = (min + max) / 2;
+                long required = this.Part1(input, mid);
+
+                if (required < target)
+                {
+                    // too low, chop to the higher half
+                    min = mid;
+                }
+                else if (required > target)
+                {
+                    // too high, chop to the lower half
+                    max = mid;
+                }
+            }
+
+            return min;
+        }
+
+        /// <summary>
+        /// Work out how much of each chemical is needed to produce the needed amount of fuel
+        /// </summary>
+        /// <param name="chemical">Current chemical to produce (if necessary)</param>
+        /// <param name="reactions">Reaction formulae</param>
+        /// <param name="got">Stock if chemicals already produced</param>
+        /// <param name="needed">Amount of each chemical yet to be produced</param>
+        private static void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, long> got, Dictionary<string, long> needed)
         {
             if (!reactions.ContainsKey(chemical))
             {
@@ -57,59 +92,20 @@ namespace AdventOfCode
 
             Reaction reaction = reactions[chemical];
 
-            // can't react fractions so round up to next whole number
+            // can't react fractional amounts so round up to next whole number
             double fractionalMultiplier = (double)(needed[chemical] - got[chemical]) / reaction.Output.quantity;
             long multiplier = (long)Math.Ceiling(fractionalMultiplier);
 
-            // react up some more of it
-            got[chemical] += reaction.Output.quantity * multiplier;
-
+            // produce some more of it using the reaction formula in a depth-first recursive search
             foreach ((int quantity, string chemical) input in reaction.Inputs)
             {
                 needed[input.chemical] += input.quantity * multiplier;
 
-                // follow the reaction backwards
+                // follow the reaction backwards to create the needed inputs until we hit raw material
                 React(input.chemical, reactions, got, needed);
             }
-        }
 
-        public long Part2(string[] input)
-        {
-            const long MAX_ORE = 1000000000000;
-
-            // establish upper bound
-            long max = 1;
-            long required;
-            while ((required = Part1(input, max)) < MAX_ORE)
-            {
-                max *= 2;
-                Debug.WriteLine($"{max} - {required}");
-            }
-
-            // find lower bound
-            long min = 0;
-            while (min < max - 1)
-            {
-                long mid = (min + max) / 2;
-                required = Part1(input, mid);
-
-                Debug.WriteLine($"{mid} - {required}");
-
-                if (required < MAX_ORE)
-                {
-                    min = mid;
-                }
-                else if (required > MAX_ORE)
-                {
-                    max = mid;
-                }
-            }
-
-            return min;
-
-            // guessed 2690377 -- too low
-            //    - Required ore for 2_690_377 fuel is actually 239_527_482 so can't just do 1_000_000_000_000 / orePerFuel
-            // guessed 82892753 -- too high -- I was running the sample input!! big lolz!!!
+            got[chemical] += reaction.Output.quantity * multiplier;
         }
     }
 
