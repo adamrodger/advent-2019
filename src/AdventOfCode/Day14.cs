@@ -10,11 +10,11 @@ namespace AdventOfCode
     /// </summary>
     public class Day14
     {
-        public int Part1(string[] input)
+        public int Part1(string[] input, int requiredFuel = 1)
         {
             var reactions = new Dictionary<string, Reaction>(input.Length);
-            Dictionary<string, int> got = new Dictionary<string, int>(reactions.Count);
-            Dictionary<string, int> needed = new Dictionary<string, int>(reactions.Count);
+            var got = new Dictionary<string, int>(reactions.Count);
+            var needed = new Dictionary<string, int>(reactions.Count);
 
             foreach (string line in input)
             {
@@ -36,7 +36,7 @@ namespace AdventOfCode
             got["ORE"] = 0;
             needed["ORE"] = 0;
             
-            needed["FUEL"] = 1;
+            needed["FUEL"] = requiredFuel;
 
             // recursively work backwards from FUEL, adding required amounts of input for each output
             React("FUEL", reactions, got, needed);
@@ -48,6 +48,12 @@ namespace AdventOfCode
 
         public void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, int> got, Dictionary<string, int> needed)
         {
+            if (!reactions.ContainsKey(chemical))
+            {
+                // input is a raw material - no reaction required
+                return;
+            }
+
             Reaction reaction = reactions[chemical];
 
             // can't react fractions so round up to next whole number
@@ -61,22 +67,31 @@ namespace AdventOfCode
             {
                 needed[input.chemical] += input.quantity * multiplier;
 
-                if (input.chemical != "ORE") // ORE has no inputs, don't follow backwards
-                {
-                    // follow the reaction backwards
-                    React(input.chemical, reactions, got, needed);
-                }
+                // follow the reaction backwards
+                React(input.chemical, reactions, got, needed);
             }
         }
 
         public int Part2(string[] input)
         {
-            long got = 1000000000000;
+            long maxOre = 1_000_000_000_000;
             int orePerFuel = Part1(input);
+            int tryFuel = 1;
 
-            double canProduce = got / (double)orePerFuel;
+            // keep producing more and more fuel until we've consumed all the ore
+            while(true)
+            {
+                int requiredOre = Part1(input, tryFuel);
 
-            return (int)Math.Floor(canProduce);
+                if (requiredOre > maxOre)
+                {
+                    return tryFuel;
+                }
+
+                tryFuel++;
+            }
+
+            return -1;
 
             // guessed 2690377 -- too low
         }
