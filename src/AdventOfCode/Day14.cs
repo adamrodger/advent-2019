@@ -71,12 +71,14 @@ namespace AdventOfCode
 
         public int Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
+            long got = 1000000000000;
+            int orePerFuel = Part1(input);
 
-            return 0;
+            double canProduce = got / (double)orePerFuel;
+
+            return (int)Math.Floor(canProduce);
+
+            // guessed 2690377 -- too low
         }
     }
 
