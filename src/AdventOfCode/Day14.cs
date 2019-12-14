@@ -49,7 +49,10 @@ namespace AdventOfCode
         public void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, int> got, Dictionary<string, int> needed)
         {
             Reaction reaction = reactions[chemical];
-            int multiplier = (needed[chemical] - got[chemical]) / reaction.Output.quantity;
+
+            // can't react fractions so round up to next whole number
+            double fractionalMultiplier = (double)(needed[chemical] - got[chemical]) / reaction.Output.quantity;
+            int multiplier = (int)Math.Ceiling(fractionalMultiplier);
 
             // react up some more of it
             got[chemical] += reaction.Output.quantity * multiplier;
