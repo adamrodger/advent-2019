@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -10,11 +11,11 @@ namespace AdventOfCode
     /// </summary>
     public class Day14
     {
-        public int Part1(string[] input, int requiredFuel = 1)
+        public long Part1(string[] input, long requiredFuel = 1)
         {
             var reactions = new Dictionary<string, Reaction>(input.Length);
-            var got = new Dictionary<string, int>(reactions.Count);
-            var needed = new Dictionary<string, int>(reactions.Count);
+            var got = new Dictionary<string, long>(reactions.Count);
+            var needed = new Dictionary<string, long>(reactions.Count);
 
             foreach (string line in input)
             {
@@ -46,7 +47,7 @@ namespace AdventOfCode
             // guessed 174729 -- too low
         }
 
-        public void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, int> got, Dictionary<string, int> needed)
+        public void React(string chemical, Dictionary<string, Reaction> reactions, Dictionary<string, long> got, Dictionary<string, long> needed)
         {
             if (!reactions.ContainsKey(chemical))
             {
@@ -58,7 +59,7 @@ namespace AdventOfCode
 
             // can't react fractions so round up to next whole number
             double fractionalMultiplier = (double)(needed[chemical] - got[chemical]) / reaction.Output.quantity;
-            int multiplier = (int)Math.Ceiling(fractionalMultiplier);
+            long multiplier = (long)Math.Ceiling(fractionalMultiplier);
 
             // react up some more of it
             got[chemical] += reaction.Output.quantity * multiplier;
@@ -72,28 +73,43 @@ namespace AdventOfCode
             }
         }
 
-        public int Part2(string[] input)
+        public long Part2(string[] input)
         {
-            long maxOre = 1_000_000_000_000;
-            int orePerFuel = Part1(input);
-            int tryFuel = 1;
+            const long MAX_ORE = 1000000000000;
 
-            // keep producing more and more fuel until we've consumed all the ore
-            while(true)
+            // establish upper bound
+            long max = 1;
+            long required;
+            while ((required = Part1(input, max)) < MAX_ORE)
             {
-                int requiredOre = Part1(input, tryFuel);
-
-                if (requiredOre > maxOre)
-                {
-                    return tryFuel;
-                }
-
-                tryFuel++;
+                max *= 2;
+                Debug.WriteLine($"{max} - {required}");
             }
 
-            return -1;
+            // find lower bound
+            long min = 0;
+            while (min < max - 1)
+            {
+                long mid = (min + max) / 2;
+                required = Part1(input, mid);
+
+                Debug.WriteLine($"{mid} - {required}");
+
+                if (required < MAX_ORE)
+                {
+                    min = mid;
+                }
+                else if (required > MAX_ORE)
+                {
+                    max = mid;
+                }
+            }
+
+            return min;
 
             // guessed 2690377 -- too low
+            //    - Required ore for 2_690_377 fuel is actually 239_527_482 so can't just do 1_000_000_000_000 / orePerFuel
+            // guessed 82892753 -- too high -- I was running the sample input!! big lolz!!!
         }
     }
 
