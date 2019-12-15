@@ -2,15 +2,11 @@
 
 namespace AdventOfCode.Utilities
 {
-    public class Point2D : IEquatable<Point2D>
+    public struct Point2D : IEquatable<Point2D>
     {
-        public int X { get; set; }
+        public int X { get; }
 
-        public int Y { get; set; }
-
-        public Point2D()
-        {
-        }
+        public int Y { get; }
 
         public Point2D(int x, int y)
         {
@@ -20,16 +16,6 @@ namespace AdventOfCode.Utilities
 
         public bool Equals(Point2D other)
         {
-            if (ReferenceEquals(null, other))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
             return this.X == other.X && this.Y == other.Y;
         }
 
@@ -38,11 +24,6 @@ namespace AdventOfCode.Utilities
             if (ReferenceEquals(null, obj))
             {
                 return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
             }
 
             if (obj.GetType() != this.GetType())

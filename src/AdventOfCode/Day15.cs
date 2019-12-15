@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using AdventOfCode.IntCode;
 using AdventOfCode.Utilities;
 
@@ -84,7 +85,7 @@ namespace AdventOfCode
         /// <param name="current">Current position</param>
         private static void DiscoverGrid(IntCodeEmulator vm, Graph<Point2D> graph, IDictionary<Point2D, Tile> tiles, Point2D current)
         {
-            // try and go in each direction, and unwind after each attempt
+            // try and go in each direction, and unwind after successful move attempt
             foreach (Move move in Deltas.Keys)
             {
                 Point2D next = NextMove(current, move);
@@ -98,21 +99,27 @@ namespace AdventOfCode
                 Tile result = MakeMove(vm, move);
                 tiles[next] = result;
 
-                PrintTiles(tiles);
-
-                if (result != Tile.Wall)
+                if (result == Tile.Wall)
                 {
-                    // add two-way vertex since we've not hit a wall
-                    graph.AddVertex(current, next);
-                    graph.AddVertex(next, current);
-
-                    // DFS until we hit a wall
-                    DiscoverGrid(vm, graph, tiles, next);
+                    // droid doesn't move if wall hit, so no rewind to do
+                    PrintTiles(tiles, current);
+                    continue;
                 }
 
-                // compensatory unwind back to current position
+                PrintTiles(tiles, next);
+
+                // add two-way vertex since we've not hit a wall
+                graph.AddVertex(current, next);
+                graph.AddVertex(next, current);
+
+                // DFS until we hit a wall
+                DiscoverGrid(vm, graph, tiles, next);
+
+                // compensatory unwind back to current position because VM isn't immutable
                 Move unwind = Unwinds[move];
                 MakeMove(vm, unwind);
+
+                PrintTiles(tiles, current);
             }
         }
 
@@ -152,23 +159,35 @@ namespace AdventOfCode
         /// Print the current state of the tiles
         /// </summary>
         /// <param name="tiles">Tiles to print</param>
-        private static void PrintTiles(IDictionary<Point2D, Tile> tiles)
+        /// <param name="current">Current position</param>
+        private static void PrintTiles(IDictionary<Point2D, Tile> tiles, Point2D current = default)
         {
-            char[,] grid = new char[42, 42];
+            if (!Debugger.IsAttached)
+            {
+                return;
+            }
+
+            const int size = 42;
+            const int offset = size / 2;
+
+            char[,] grid = new char[size, size];
             grid.ForEach((x, y, c) => grid[y, x] = ' ');
 
             foreach (var tile in tiles)
             {
-                grid[tile.Key.Y + 21, tile.Key.X + 21] = tile.Value switch
+                grid[tile.Key.Y + offset, tile.Key.X + offset] = tile.Value switch
                 {
-                    Tile.Wall   => '#',
+                    Tile.Wall   => '█',
                     Tile.Open   => '.',
                     Tile.Oxygen => 'X',
                     _           => throw new ArgumentOutOfRangeException()
                 };
             }
 
+            grid[current.Y + offset, current.X + offset] = 'O';
+
             grid.Print();
+            Thread.Sleep(100);
         }
     }
 }

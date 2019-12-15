@@ -121,6 +121,7 @@
 
             string result = builder.ToString();
             Debug.Write(result);
+            Debug.Flush();
             return result;
         }
 
