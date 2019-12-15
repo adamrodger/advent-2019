@@ -92,6 +92,12 @@
                     return path;
                 }
 
+                if (!this.Vertices.ContainsKey(current))
+                {
+                    // dead end
+                    continue;
+                }
+
                 // walk outwards along edges to see if we can find a closer node
                 foreach ((TNode next, int cost) in this.Vertices[current])
                 {

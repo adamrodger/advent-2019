@@ -102,7 +102,6 @@ namespace AdventOfCode
                 return;
             }
 
-
             if (path.Count > 1)
             {
                 // add valid vertex since we've not hit a wall
