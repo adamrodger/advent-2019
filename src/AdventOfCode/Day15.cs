@@ -23,27 +23,38 @@ namespace AdventOfCode
         {
             this.input = input;
 
+            (Graph<Point2D> graph, Point2D target, _) = this.BuildGraph();
+            List<(Point2D node, int distance)> shortest = graph.GetShortestPath((Offset, Offset), target);
+
+            return shortest.Count;
+        }
+
+        private (Graph<Point2D> graph, Point2D target, Dictionary<Point2D, Tile> tiles) BuildGraph()
+        {
             var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
             var tiles = new Dictionary<Point2D, Tile>();
 
             // do a flood search, setting valid indices on the graph, use a new intcode VM each time with the chain
-            DiscoverGrid(graph, tiles, new[] { (Move.North, new Point2D(Offset, Offset - 1)) });
-            DiscoverGrid(graph, tiles, new[] { (Move.South, new Point2D(Offset, Offset + 1)) });
-            DiscoverGrid(graph, tiles, new[] { (Move.West, new Point2D(Offset - 1, Offset)) });
-            DiscoverGrid(graph, tiles, new[] { (Move.East, new Point2D(Offset + 1, Offset)) });
+            this.DiscoverGrid(graph, tiles, new[] {(Move.North, new Point2D(Offset, Offset - 1))});
+            this.DiscoverGrid(graph, tiles, new[] {(Move.South, new Point2D(Offset, Offset + 1))});
+            this.DiscoverGrid(graph, tiles, new[] {(Move.West, new Point2D(Offset - 1, Offset))});
+            this.DiscoverGrid(graph, tiles, new[] {(Move.East, new Point2D(Offset + 1, Offset))});
 
             if (tiles[(Offset, Offset - 1)] != Tile.Wall)
             {
-                graph.AddVertex((Offset,Offset), (Offset, Offset - 1));
+                graph.AddVertex((Offset, Offset), (Offset, Offset - 1));
             }
+
             if (tiles[(Offset, Offset + 1)] != Tile.Wall)
             {
                 graph.AddVertex((Offset, Offset), (Offset, Offset + 1));
             }
+
             if (tiles[(Offset - 1, Offset)] != Tile.Wall)
             {
                 graph.AddVertex((Offset, Offset), (Offset - 1, Offset));
             }
+
             if (tiles[(Offset + 1, Offset)] != Tile.Wall)
             {
                 graph.AddVertex((Offset, Offset), (Offset + 1, Offset));
@@ -55,16 +66,15 @@ namespace AdventOfCode
             foreach (var tile in tiles)
             {
                 grid[tile.Key.Y, tile.Key.X] = tile.Value == Tile.Wall ? '#'
-                                             : tile.Value == Tile.Open ? '.'
-                                             : 'X';
+                    : tile.Value == Tile.Open ? '.'
+                    : 'X';
             }
 
             grid.Print();
 
             Point2D target = tiles.First(kvp => kvp.Value == Tile.Oxygen).Key;
-            List<(Point2D node, int distance)> shortest = graph.GetShortestPath((Offset, Offset), target);
 
-            return shortest.Count;
+            return (graph, target, tiles);
         }
 
         public void DiscoverGrid(Graph<Point2D> graph, Dictionary<Point2D, Tile> tiles, IList<(Move move, Point2D position)> path)
@@ -107,6 +117,9 @@ namespace AdventOfCode
                 // add valid vertex since we've not hit a wall
                 var previous = path.ElementAt(path.Count - 2);
                 graph.AddVertex(previous.position, current.position);
+                
+                // make it 2-way
+                graph.AddVertex(current.position, previous.position);
             }
 
             if (result == Tile.Open)
@@ -121,12 +134,38 @@ namespace AdventOfCode
 
         public int Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
+            this.input = input;
 
-            return 0;
+            (Graph<Point2D> graph, Point2D target, var tiles) = this.BuildGraph();
+
+            //int max = 0;
+
+            var open = tiles.Where(k => k.Value == Tile.Open).ToList();
+
+            var lengths = open.ToDictionary(k => k.Key, k => graph.GetShortestPath(target, k.Key)?.Count);
+
+            int max = lengths.Values.Where(v => v.HasValue).Select(v => v.Value).Max();
+
+            // brute force from every location
+            /*for (int y = 0; y < 42; y++)
+            {
+                for (int x = 0; x < 42; x++)
+                {
+                    if (tiles.ContainsKey((x, y)) && tiles[(x, y)] == Tile.Open)
+                    {
+                        var path = graph.GetShortestPath(target, (x, y));
+
+                        if (path == null)
+                        {
+                            continue;
+                        }
+
+                        max = Math.Max(max, path.Count);
+                    }
+                }
+            }*/
+
+            return max;
         }
     }
 }
