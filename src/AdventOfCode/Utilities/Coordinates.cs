@@ -81,6 +81,11 @@ namespace AdventOfCode.Utilities
             return new Point2D(coordinates.x, coordinates.y);
         }
 
+        public static Point2D operator +(Point2D a, Point2D b)
+        {
+            return new Point2D(a.X + b.X, a.Y + b.Y);
+        }
+
         public override string ToString()
         {
             return $"{this.X}, {this.Y}";
@@ -170,6 +175,11 @@ namespace AdventOfCode.Utilities
         public static implicit operator Point3D((int x, int y, int z) coordinates)
         {
             return new Point3D(coordinates.x, coordinates.y, coordinates.z);
+        }
+
+        public static Point3D operator +(Point3D a, Point3D b)
+        {
+            return new Point3D(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
         }
 
         public override string ToString()

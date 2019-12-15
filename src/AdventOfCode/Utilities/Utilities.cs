@@ -158,14 +158,6 @@
             }
         }
 
-        public static IEnumerable<Point2D> Adjacent4(this Point2D position)
-        {
-            yield return new Point2D(position.X, position.Y - 1);
-            yield return new Point2D(position.X, position.Y + 1);
-            yield return new Point2D(position.X + 1, position.Y);
-            yield return new Point2D(position.X - 1, position.Y);
-        }
-
         public static char[,] ToGrid(this string[] input)
         {
             // y,x remember, not x,y
