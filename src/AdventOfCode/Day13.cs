@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using AdventOfCode.IntCode;
 using AdventOfCode.Utilities;
 using MoreLinq;
@@ -26,6 +28,8 @@ namespace AdventOfCode
 
             var grid = new char[30, 50];
             int score = 0;
+            Point2D paddle = (0, 0);
+            Point2D ball = (0, 0);
 
             while (!vm.Halted)
             {
@@ -35,31 +39,44 @@ namespace AdventOfCode
                 // update the grid
                 while (vm.StdOut.Count > 2)
                 {
-                    long x = vm.StdOut.Dequeue();
-                    long y = vm.StdOut.Dequeue();
+                    int x = (int)vm.StdOut.Dequeue();
+                    int y = (int)vm.StdOut.Dequeue();
                     long value = vm.StdOut.Dequeue();
 
                     if (x == -1 && y == 0)
                     {
                         score = (int)value;
-                        continue;
+                    }
+                    else if (value == 3)
+                    {
+                        paddle = (x, y);
+                    }
+                    else if (value == 4)
+                    {
+                        ball = (x, y);
                     }
 
-                    grid[y, x] = value switch
+                    if (Debugger.IsAttached)
                     {
-                        0 => ' ',
-                        1 => '|',
-                        2 => '#',
-                        3 => '_',
-                        4 => 'o',
-                        _ => throw new ArgumentException()
-                    };
+                        grid[y, x] = value switch
+                        {
+                            0 => ' ',
+                            1 => '|',
+                            2 => '#',
+                            3 => '_',
+                            4 => 'o',
+                            _ => throw new ArgumentException()
+                        };
+                    }
                 }
 
-                // find the ball and move the paddle towards it
-                Point2D ball = grid.First(c => c == 'o');
-                Point2D paddle = grid.First(c => c == '_');
+                if (Debugger.IsAttached)
+                {
+                    grid.Print();
+                    Thread.Sleep(100);
+                }
 
+                // move the paddle towards the ball
                 long joystick = ball.X.CompareTo(paddle.X);
 
                 vm.StdIn.Enqueue(joystick);
