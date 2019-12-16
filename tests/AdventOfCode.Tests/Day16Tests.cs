@@ -1,7 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using Xunit;
 using Xunit.Abstractions;
-
 
 namespace AdventOfCode.Tests
 {
@@ -26,24 +25,14 @@ namespace AdventOfCode.Tests
         {
             return new string[]
             {
-                
+
             };
-        }
-
-        [Fact]
-        public void Part1_SampleInput_ProducesCorrectResponse()
-        {
-            var expected = -1;
-
-            var result = solver.Part1(GetSampleInput());
-
-            Assert.Equal(expected, result);
         }
 
         [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 68764632;
 
             var result = solver.Part1(GetRealInput());
             output.WriteLine($"Day 16 - Part 1 - {result}");

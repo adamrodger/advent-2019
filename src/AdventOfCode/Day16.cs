@@ -18,7 +18,7 @@ namespace AdventOfCode
 
             for (int x = 0; x < 100; x++)
             {
-                StringBuilder output = new StringBuilder(line.Length);
+                var output = new StringBuilder(line.Length);
 
                 for (int i = 0; i < line.Length; i++)
                 {
@@ -26,11 +26,13 @@ namespace AdventOfCode
                                                           .SelectMany(p => Enumerable.Repeat(p, i + 1))
                                                           .Skip(1);
 
-                    int a = (int)Convert.ChangeType(line[i], typeof(int)) * pattern.ElementAt(i);
+                    var zipped = line.Zip(pattern, (c1, i1) => int.Parse(new string(new[] { c1 })) * i1);
+
+                    int a = zipped.Sum();
                     int b = Math.Abs(a);
                     int c = b % 10;
 
-                    output.Append(c.ToString()[0]);
+                    output.Append(c.ToString());
                 }
 
                 line = output.ToString();
