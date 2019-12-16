@@ -15,7 +15,7 @@ namespace AdventOfCode
             int[] signal = input[0].Select(char.GetNumericValue).Select(c => (int)c).ToArray();
             int[] output = TransformPart1(signal);
 
-            char[] c = output.Take(8).Select(o => o.ToString()[0]).ToArray();
+            char[] c = output.Select(o => o.ToString()[0]).ToArray();
             return int.Parse(new string(c));
         }
 
@@ -26,7 +26,7 @@ namespace AdventOfCode
             int[] signal = input[0].Select(char.GetNumericValue).Select(c => (int)c).Repeat(10000).ToArray();
             int[] output = TransformPart2(signal, offset);
 
-            char[] c = output.Skip(offset).Take(8).Select(o => o.ToString()[0]).ToArray();
+            char[] c = output.Select(o => o.ToString()[0]).ToArray();
             return int.Parse(new string(c));
         }
 
@@ -35,7 +35,7 @@ namespace AdventOfCode
         /// the value at the output index
         /// </summary>
         /// <param name="input">Input signal</param>
-        /// <returns>Transformed output signal</returns>
+        /// <returns>Answer digits</returns>
         private static int[] TransformPart1(int[] input)
         {
             int[] basePattern = { 0, 1, 0, -1 };
@@ -46,12 +46,13 @@ namespace AdventOfCode
 
                 for (int i = 0; i < input.Length; i++)
                 {
-                    // got to be a mathsy way of calculating this instead of effectively reproducing all the time. This bit is slow
+                    // infinite repeating pattern, multiplied by i, offset one to the left and then by i because first i elements are all 0
                     IEnumerable<int> pattern = basePattern.Repeat()
                                                           .SelectMany(p => Enumerable.Repeat(p, i + 1))
-                                                          .Skip(1);
+                                                          .Skip(1 + i);
 
-                    IEnumerable<int> zipped = input.Zip(pattern, (n, p) => n * p);
+                    // no need to use first i iterations of input because they're all multiplied by 0
+                    IEnumerable<int> zipped = input.Skip(i).Zip(pattern, (n, p) => n * p);
 
                     output[i] = zipped.Sum().Abs() % 10;
                 }
@@ -59,7 +60,7 @@ namespace AdventOfCode
                 input = output;
             }
 
-            return input;
+            return input.Take(8).ToArray();
         }
 
         /// <summary>
@@ -68,18 +69,23 @@ namespace AdventOfCode
         /// </summary>
         /// <param name="input">Input signal</param>
         /// <param name="offset">Offset to the 8-digit answer</param>
-        /// <returns>Transformed output signal</returns>
+        /// <returns>Answer digits</returns>
         private static int[] TransformPart2(int[] input, int offset)
         {
+            // no need to work on anything prior to the offset
+            input = input.Skip(offset).ToArray();
+
             for (int phase = 0; phase < 100; phase++)
             {
                 var output = new int[input.Length];
                 int previousSum = 0;
 
-                for (int i = input.Length - 1; i >= offset; i--)
+                // output[i] = (input[i] + input[i+1] + input[i+2] + ...) % 10
+                // go backwards through the array keeping a running some of digits to the 'right' of i
+                for (int i = input.Length - 1; i >= 0; i--)
                 {
                     int sum = input[i] + previousSum;
-                    output[i] = sum.Abs() % 10;
+                    output[i] = sum % 10;
 
                     previousSum = sum;
                 }
@@ -87,7 +93,7 @@ namespace AdventOfCode
                 input = output;
             }
 
-            return input;
+            return input.Take(8).ToArray();
         }
     }
 }
