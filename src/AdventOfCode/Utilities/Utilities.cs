@@ -174,5 +174,10 @@
 
             return grid;
         }
+
+        public static int Abs(this int x)
+        {
+            return Math.Abs(x);
+        }
     }
 }
