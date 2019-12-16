@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Linq;
 using AdventOfCode.Utilities;
 using MoreLinq;
 
@@ -13,52 +11,44 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            string line = Transform(input[0]);
+            int[] nums = input[0].Select(char.GetNumericValue).Select(c => (int)c).ToArray();
+            int[] output = Transform(nums, 0);
 
-            return int.Parse(line);
+            char[] c = output.Take(8).Select(o => o.ToString()[0]).ToArray();
+            return int.Parse(new string(c));
         }
 
         public int Part2(string[] input)
         {
-            string line = new string(input[0].Repeat(10000).ToArray());
-            int offset = int.Parse(new string(line.Take(7).ToArray()));
+            int offset = int.Parse(new string(input[0].Take(7).ToArray()));
 
-            Debug.Assert(offset < line.Length); // make sure there's no need to repeat
+            int[] nums = input[0].Select(char.GetNumericValue).Select(c => (int)c).Repeat(10000).ToArray();
+            int[] output = TransformPart2(nums, offset);
 
-            // 6,500,000 char string * 100 iterations == ouch. can't brute-force that really
-            line = Transform(line, offset);
-
-            return int.Parse(line);
-
-            // guessed 56,422,847 with a complete hack of just working on skip(offset).take(8) -- too high :D
+            char[] c = output.Skip(offset).Take(8).Select(o => o.ToString()[0]).ToArray();
+            return int.Parse(new string(c));
         }
 
-        private static string Transform(string parse, int offset = 0)
+        private static int[] TransformPart2(int[] input, int offset)
         {
-            int[] basePattern = { 0, 1, 0, -1 };
-            int[] input = parse.Select(char.GetNumericValue).Select(c => (int)c).ToArray();
-
             for (int phase = 0; phase < 100; phase++)
             {
                 var output = new int[input.Length];
+                int previousSum = 0;
 
-                for (int i = 0; i < input.Length; i++)
+                for (int i = input.Length - 1; i >= offset; i--)
                 {
-                    // got to be a mathsy way of calculating this instead of effectively reproducing all the time. This bit is slow
-                    IEnumerable<int> pattern = basePattern.Repeat()
-                                                          .SelectMany(p => Enumerable.Repeat(p, i + 1))
-                                                          .Skip(1);
+                    int sum = input[i] + previousSum;
+                    output[i] = sum.Abs() % 10;
 
-                    IEnumerable<int> zipped = input.Zip(pattern, (n, p) => n * p);
-
-                    output[i] = zipped.Sum().Abs() % 10;
+                    previousSum = sum;
                 }
 
                 input = output;
             }
 
             // turn nums back into a string
-            return string.Join(string.Empty, input.Skip(offset).Take(8).Select(n => n.ToString()));
+            return input;
         }
     }
 }
