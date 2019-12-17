@@ -1,7 +1,8 @@
-﻿using System;
+﻿using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.IntCode;
 using AdventOfCode.Utilities;
+using MoreLinq;
 
 namespace AdventOfCode
 {
@@ -15,35 +16,32 @@ namespace AdventOfCode
             var vm = new IntCodeEmulator(input);
             vm.Execute();
 
-            int dim = (int)Math.Ceiling(Math.Sqrt(vm.StdOut.Count));
+            int height = vm.StdOut.Count(c => c == 10) + 1;
 
-            char[,] grid = new char[dim,dim];
+            char[,] grid = new char[height, height];
+            grid.ForEach((x, y, _) => grid[y, x] = ' ');
+
             int x = 0, y = 0;
 
-            while(vm.StdOut.Any())
+            while (vm.StdOut.Any())
             {
                 long value = vm.StdOut.Dequeue();
 
-                if (value == 10)
+                if (value == '\n')
                 {
                     x = 0;
                     y++;
                     continue;
                 }
 
-                if (value == 35)
-                {
-                    grid[y, x] = '#';
-                }
-                else if (value == 46)
-                {
-                    grid[y, x] = '.';
-                }
-
+                grid[y, x] = (char)value;
                 x++;
             }
 
-            grid.Print();
+            if (Debugger.IsAttached)
+            {
+                grid.Print();
+            }
 
             int sum = 0;
 
@@ -57,8 +55,6 @@ namespace AdventOfCode
             });
 
             return sum;
-
-            // 1961 -- too high
         }
 
         public int Part2(string[] input)
@@ -66,12 +62,30 @@ namespace AdventOfCode
             var vm = new IntCodeEmulator(input);
             vm.Program[0] = 2;
 
-            foreach (string line in input)
+            const string overall = "B,A,B,A,C,B,A,C,B,C";
+            const string A = "L,8,L,6,L,10,L,6";
+            const string B = "R,6,L,6,L,10";
+            const string C = "R,6,L,8,L,10,R,6";
+
+            foreach (string command in new[] { overall, A, B ,C })
             {
-                throw new NotImplementedException("Part 2 not implemented");
+                command.ForEach(o => vm.StdIn.Enqueue(o));
+                vm.StdIn.Enqueue(10);
             }
 
-            return 0;
+            // don't show verbose output
+            vm.StdIn.Enqueue('n');
+            vm.StdIn.Enqueue(10);
+
+            vm.Execute();
+
+            if (Debugger.IsAttached)
+            {
+                vm.StdOut.Take(vm.StdOut.Count - 1).ForEach(l => Debug.Write((char)l));
+                Debug.Flush();
+            }
+
+            return (int)vm.StdOut.Last();
         }
     }
 }
