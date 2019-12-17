@@ -14,6 +14,7 @@ fi
 # make sure repo is up to date
 git fetch
 git checkout -b dev/$1 origin/master
+git push -u origin dev/$1
 
 # create solution
 cp src/AdventOfCode/DayXX.cs src/AdventOfCode/Day$1.cs
