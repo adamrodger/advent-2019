@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -20,9 +19,8 @@ namespace AdventOfCode
         public int Part1(string[] input)
         {
             char[,] grid = new char[input.Length, input[0].Length];
-            var keys = new Dictionary<char, Point2D>();
-            var doors = new Dictionary<char, Point2D>();
-            Point2D start = (-1, -1);
+
+            List<Point2D> robots = new List<Point2D>();
 
             for (int y = 0; y < input.Length; y++)
             {
@@ -32,42 +30,41 @@ namespace AdventOfCode
 
                     grid[y, x] = c;
 
-                    if (c >= 'a' && c <= 'z')
+                    if (c == '@')
                     {
-                        keys.Add(c, (x, y));
-                    }
-                    else if (c >= 'A' && c <= 'Z')
-                    {
-                        doors.Add(c, (x, y));
-                    }
-                    else if (c == '@')
-                    {
-                        start = (x, y);
+                        robots.Add((x, y));
                     }
                 }
             }
 
-            int result = this.FindShortestPath(grid, start, string.Empty);
+            int result = this.FindShortestPath(grid, robots, string.Empty);
             return result;
         }
 
         public int Part2(string[] input)
         {
-            throw new NotImplementedException();
+            // convert the map to allow 4 robots - so hacky :D
+            input[39] = "#.#.............#...............#......@#@........#.........#.................M.#";
+            input[40] = "#################################################################################";
+            input[41] = "#.#...#.......#........................@#@....#.........#.........#..d#...#.....#";
+
+            return this.Part1(input);
         }
 
-        private static Dictionary<(Point2D point, string foundKeys), int> Cache = new Dictionary<(Point2D point, string foundKeys), int>();
+        private static Dictionary<(int robotsHash, string foundKeys), int> Cache = new Dictionary<(int robotsHash, string foundKeys), int>();
 
-        private int FindShortestPath(char[,] grid, Point2D start, string foundKeys)
+        private int FindShortestPath(char[,] grid, List<Point2D> robots, string foundKeys)
         {
-            var cacheKey = (start, new string(foundKeys.OrderBy(c => c).ToArray()));
+            // how can we generate a cache key for multiple bots?!
+            var cacheKey = (robots.GetCombinedHashCode(), new string(foundKeys.OrderBy(c => c).ToArray()));
 
             if (Cache.ContainsKey(cacheKey))
             {
                 return Cache[cacheKey];
             }
 
-            var available = this.AvailableKeys(grid, start, foundKeys);
+            Dictionary<char, (Point2D point, int distance, Point2D robot)> available = this.AvailableKeys(grid, robots, foundKeys);
+
             int result = 0;
 
             if (available.Count > 0)
@@ -76,9 +73,11 @@ namespace AdventOfCode
                 var possibilities = new Dictionary<char, int>();
 
                 // branch down all possible routes
-                foreach (var key in available)
+                foreach (KeyValuePair<char, (Point2D point, int distance, Point2D robot)> key in available)
                 {
-                    possibilities[key.Key] = key.Value.distance + this.FindShortestPath(grid, key.Value.point, foundKeys + key.Key);
+                    // got to track which robot moved and where they moved to
+                    var newRobots = robots.Except(new [] { key.Value.robot }).Append(key.Value.point).ToList();
+                    possibilities[key.Key] = key.Value.distance + this.FindShortestPath(grid, newRobots, foundKeys + key.Key);
                 }
 
                 // pick the shortest path to the final key
@@ -87,6 +86,24 @@ namespace AdventOfCode
 
             Cache[cacheKey] = result;
             return result;
+        }
+
+        private Dictionary<char, (Point2D point, int distance, Point2D robot)> AvailableKeys(char[,] grid, List<Point2D> robots, string foundKeys)
+        {
+            // collect all visible keys from all available robots
+            var keys = new Dictionary<char, (Point2D point, int distance, Point2D robot)>();
+
+            foreach (Point2D robot in robots)
+            {
+                var robotKeys = this.AvailableKeys(grid, robot, foundKeys);
+
+                foreach (var robotKey in robotKeys)
+                {
+                    keys[robotKey.Key] = (robotKey.Value.point, robotKey.Value.distance, robot);
+                }
+            }
+
+            return keys;
         }
 
         private Dictionary<char, (Point2D point, int distance)> AvailableKeys(char[,] grid, Point2D start, string foundKeys)
@@ -149,6 +166,105 @@ namespace AdventOfCode
             }
 
             return availableKeys;
+        }
+
+        /*public class Robots : IEquatable<Robots>, IEnumerable<Point2D>
+        {
+            public Point2D A { get; }
+            public Point2D B { get; }
+            public Point2D C { get; }
+            public Point2D D { get; }
+
+            public Robots(Point2D a, Point2D b, Point2D c, Point2D d)
+            {
+                this.A = a;
+                this.B = b;
+                this.C = c;
+                this.D = d;
+            }
+
+            /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+            /// <param name="other">An object to compare with this object.</param>
+            /// <returns>true if the current object is equal to the <paramref name="other">other</paramref> parameter; otherwise, false.</returns>
+            public bool Equals(Robots other)
+            {
+                if (ReferenceEquals(null, other))
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+
+                return this.A.Equals(other.A)
+                    && this.B.Equals(other.B)
+                    && this.C.Equals(other.C)
+                    && this.D.Equals(other.D);
+            }
+
+            /// <summary>Returns an enumerator that iterates through the collection.</summary>
+            /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+            public IEnumerator<Point2D> GetEnumerator()
+            {
+                if (A != default) yield return A;
+                if (B != default) yield return B;
+                if (C != default) yield return C;
+                if (D != default) yield return D;
+            }
+
+            /// <summary>Determines whether the specified object is equal to the current object.</summary>
+            /// <param name="obj">The object to compare with the current object.</param>
+            /// <returns>true if the specified object  is equal to the current object; otherwise, false.</returns>
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj))
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, obj))
+                {
+                    return true;
+                }
+
+                if (obj.GetType() != this.GetType())
+                {
+                    return false;
+                }
+
+                return Equals((Robots)obj);
+            }
+
+            /// <summary>Serves as the default hash function.</summary>
+            /// <returns>A hash code for the current object.</returns>
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hashCode = this.A.GetHashCode();
+                    hashCode = (hashCode * 397) ^ this.B.GetHashCode();
+                    hashCode = (hashCode * 397) ^ this.C.GetHashCode();
+                    hashCode = (hashCode * 397) ^ this.D.GetHashCode();
+                    return hashCode;
+                }
+            }
+
+            /// <summary>Returns an enumerator that iterates through a collection.</summary>
+            /// <returns>An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.</returns>
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return this.GetEnumerator();
+            }
+        }*/
+    }
+
+    public static class RobotExtensions
+    {
+        public static int GetCombinedHashCode(this ICollection<Point2D> robots)
+        {
+            return robots.Aggregate(robots.First().GetHashCode(), (hashcode, robot) => (hashcode * 397) ^ robot.GetHashCode());
         }
     }
 }
