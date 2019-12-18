@@ -51,12 +51,12 @@ namespace AdventOfCode
             return this.Part1(input);
         }
 
-        private static Dictionary<(int robotsHash, string foundKeys), int> Cache = new Dictionary<(int robotsHash, string foundKeys), int>();
+        private static Dictionary<(string robots, string foundKeys), int> Cache = new Dictionary<(string robots, string foundKeys), int>();
 
         private int FindShortestPath(char[,] grid, List<Point2D> robots, string foundKeys)
         {
             // how can we generate a cache key for multiple bots?!
-            var cacheKey = (robots.GetCombinedHashCode(), new string(foundKeys.OrderBy(c => c).ToArray()));
+            var cacheKey = (string.Join(",", robots), new string(foundKeys.OrderBy(c => c).ToArray()));
 
             if (Cache.ContainsKey(cacheKey))
             {
@@ -260,11 +260,11 @@ namespace AdventOfCode
         }*/
     }
 
-    public static class RobotExtensions
+    /*public static class RobotExtensions
     {
         public static int GetCombinedHashCode(this ICollection<Point2D> robots)
         {
             return robots.Aggregate(robots.First().GetHashCode(), (hashcode, robot) => (hashcode * 397) ^ robot.GetHashCode());
         }
-    }
+    }*/
 }
