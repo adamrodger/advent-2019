@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using AdventOfCode.Utilities;
 using MoreLinq;
 
@@ -25,53 +24,43 @@ namespace AdventOfCode
 
         public int Part1(string[] input)
         {
-            var grid = input.ToGrid();
-            var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
+            char[,] grid = new char[input.Length, input[0].Length];
+            var keys = new Dictionary<char, Point2D>();
+            var doors = new Dictionary<char, Point2D>();
+            Point2D start = (-1, -1);
 
-            /*int height = input.Length / 2;
-            int width = input[0].Length / 2;
-            Point2D start = (height, width);*/
-            Point2D start = grid.First(c => c == '@');
-
-            BuildGraph(graph, grid, start);
-
-            int sum = 0;
-
-            var keys = Enumerable.Range('a', 26)
-                .Select(i => (char)i)
-                .ToDictionary(k => k, k => grid.First(c => c == k));
-
-            var doors = Enumerable.Range('A', 26)
-                .Select(i => (char)i)
-                .ToDictionary(d => d, d => grid.First(c => c == d));
-
-            /*while (keys.Any())
+            for (int y = 0; y < input.Length; y++)
             {
-                // find the nearest key which isn't behind a door and do that one
-                var key = keys.MinBy(k =>
+                for (int x = 0; x < input[y].Length; x++)
                 {
-                    var shortest = graph.GetShortestPath(start, k.Value);
+                    char c = input[y][x];
 
-                    bool hitDoor = shortest.Any(s => doors.ContainsValue(s.node)); // check there's no door in the way
-                    bool hitOtherKey = shortest.Any(s => s.node != start && s.node != k.Value && keys.ContainsValue(s.node));
+                    grid[y, x] = c;
 
-                    return hitDoor || hitOtherKey ? int.MaxValue : shortest.Count;
-                }).First();
-
-                var path = graph.GetShortestPath(start, key.Value);
-                sum += path.Count;
-
-                // visited
-                keys.Remove(key.Key);
-                doors.Remove(key.Key.ToString().ToUpper()[0]);
-
-                start = key.Value;
+                    if (c >= 'a' && c <= 'z')
+                    {
+                        keys.Add(c, (x,y));
+                    }
+                    else if (c >= 'A' && c <= 'Z')
+                    {
+                        doors.Add(c, (x, y));
+                    }
+                    else if (c == '@')
+                    {
+                        start = (x, y);
+                    }
+                }
             }
 
-            return sum;
-            */
+            var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
+            BuildGraph(graph, grid, start);
 
-            int shortest = Branch(graph, keys, doors, start, new List<char>(), 0);
+            // calculate the path from each key to each other key, and also from origin
+            var points = Enumerable.Append(keys.Values, start).ToList();
+            var distances = points.Cartesian(points, (p1, p2) => (start: p1, end: p2))
+                                  .ToDictionary(k => k, pair => graph.GetShortestPath(pair.start, pair.end));
+
+            int shortest = Branch(distances, keys, doors, start, string.Empty, 0);
             return shortest;
 
             // 9126 -- wrong -- started in wrong place (41,41)
@@ -121,53 +110,49 @@ namespace AdventOfCode
                 BuildGraph(graph, grid, next);
             }
         }
-
-        private static int Branch(Graph<Point2D> graph, Dictionary<char, Point2D> keys, Dictionary<char, Point2D> doors, Point2D start, List<char> followed, int distance)
+        private static int Branch(Dictionary<(Point2D start, Point2D end), List<(Point2D node, int distance)>> paths,
+                                  Dictionary<char, Point2D> keys,
+                                  Dictionary<char, Point2D> doors,
+                                  Point2D start,
+                                  string followed,
+                                  int distance)
         {
-            if (!keys.Any())
-            {
-                // finished
-                return distance;
-            }
-
-            // find the keys you can get to (i.e. without hitting a door)
+            // find the keys you can get to (i.e. without hitting a locked door)
             KeyValuePair<char, Point2D>[] availableKeys = keys.Where(k => !followed.Contains(k.Key))
                                                               .Where(k =>
                                                               {
-                                                                  var path = graph.GetShortestPath(start, k.Value);
-                                                                  return path != null && !path.Any(p => doors.ContainsValue(p.node));
+                                                                  var path = paths[(start, k.Value)];
+                                                                  return path != null && !path.Any(p => doors.ContainsValue(p.node)); // not behind a locked door
                                                               })
                                                               .ToArray();
 
             if (!availableKeys.Any())
             {
-                Debug.WriteLine($"{Thread.CurrentThread.Name} - {distance} == {string.Join(" -> ", followed)}");
+                Debug.WriteLine($"{followed} == {distance}");
                 return distance;
             }
 
             int shortest = int.MaxValue;
 
             // branch on each available key with a DFS
-            foreach (KeyValuePair<char, Point2D> key in availableKeys.AsParallel())
+            foreach (KeyValuePair<char, Point2D> key in availableKeys)
             {
                 // work out which keys/doors are yet to be opened - this is slow but we need to clone the dict minus this one key/door
-                var remainingKeys = keys.Where(k => k.Key != key.Key).ToDictionary(k => k.Key, k => k.Value);
+                //var remainingKeys = keys.Where(k => k.Key != key.Key).ToDictionary(k => k.Key, k => k.Value);
                 var remainingDoors = doors.Where(k => k.Key != key.Key.ToUpper()).ToDictionary(k => k.Key, k => k.Value);
-                var newFollowed = Enumerable.Append(followed, key.Key).ToList();
+                var newFollowed = followed + key.Key;
 
                 // keep track of distance so far
-                var path = graph.GetShortestPath(start, key.Value);
+                var path = paths[(start, key.Value)];
                 var newDistance = distance + path.Count;
 
-                //Debug.WriteLine($"{distance} + {path.Count} == {newDistance}: {string.Join(" -> ", newFollowed)}");
-
                 // branch out - note the name of the flippin' problem! Many worlds!
-                var branchlength = Branch(graph, remainingKeys, remainingDoors, key.Value, newFollowed, newDistance);
+                int branchLength = Branch(paths, keys, remainingDoors, key.Value, newFollowed, newDistance);
 
                 // decide which branch was the shortest one
-                if (branchlength < shortest)
+                if (branchLength < shortest)
                 {
-                    shortest = branchlength;
+                    shortest = branchLength;
                 }
             }
 

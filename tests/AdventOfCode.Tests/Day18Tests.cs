@@ -23,7 +23,7 @@ namespace AdventOfCode.Tests
 
         private static string[] GetSampleInput()
         {
-            return new[]
+            /*return new[]
             {
                 "#################",
                 "#i.G..c...e..H.p#",
@@ -34,9 +34,9 @@ namespace AdventOfCode.Tests
                 "########.########",
                 "#l.F..d...h..C.m#",
                 "#################",
-            };
+            };*/
 
-            /*return new[]
+            return new[]
             {
 "########################",
 "#@..............ac.GI.b#",
@@ -44,7 +44,7 @@ namespace AdventOfCode.Tests
 "###A#B#C################",
 "###g#h#i################",
 "########################",
-            };*/
+            };
         }
 
         [Fact]
