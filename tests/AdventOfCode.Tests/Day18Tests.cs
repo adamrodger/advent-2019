@@ -1,7 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using Xunit;
 using Xunit.Abstractions;
-
 
 namespace AdventOfCode.Tests
 {
@@ -24,16 +23,34 @@ namespace AdventOfCode.Tests
 
         private static string[] GetSampleInput()
         {
-            return new string[]
+            return new[]
             {
-                
+                "#################",
+                "#i.G..c...e..H.p#",
+                "########.########",
+                "#j.A..b...f..D.o#",
+                "########@########",
+                "#k.E..a...g..B.n#",
+                "########.########",
+                "#l.F..d...h..C.m#",
+                "#################",
             };
+
+            /*return new[]
+            {
+"########################",
+"#@..............ac.GI.b#",
+"###d#e#f################",
+"###A#B#C################",
+"###g#h#i################",
+"########################",
+            };*/
         }
 
         [Fact]
         public void Part1_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 136;
 
             var result = solver.Part1(GetSampleInput());
 

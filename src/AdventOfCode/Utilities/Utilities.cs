@@ -179,5 +179,10 @@
         {
             return Math.Abs(x);
         }
+
+        public static char ToUpper(this char c)
+        {
+            return (char)(c - 32);
+        }
     }
 }
