@@ -184,5 +184,10 @@
         {
             return (char)(c - 32);
         }
+
+        public static char ToLower(this char c)
+        {
+            return (char)(c + 32);
+        }
     }
 }

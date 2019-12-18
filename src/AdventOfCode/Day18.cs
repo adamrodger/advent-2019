@@ -153,10 +153,14 @@ namespace AdventOfCode
 
                 // add the distance from current key to next possible key
                 var path = paths[(start, key.Value)];
-                //var newDistance = distance + path.Count;
 
                 // branch out - note the name of the flippin' problem! Many worlds!
                 int branchLength = Branch(paths, keys, remainingDoors, key.Value, haveKeys + key.Key);
+
+                if (branchLength == 0)
+                {
+                    Debug.WriteLine($"{haveKeys} == {path.Count}");
+                }
 
                 // track which branch was the shortest one
                 possibilities[key.Key] = path.Count + branchLength;
@@ -164,7 +168,15 @@ namespace AdventOfCode
 
             int shortest = possibilities.Values.Min();
 
-            Debug.WriteLine($"{haveKeys} == {shortest}");
+            /*if (Cache.Count % 1000 == 0)
+            {
+                Debug.WriteLine($"{haveKeys} == {shortest}");
+            }*/
+
+            if (haveKeys == string.Empty)
+            {
+                Debug.WriteLine($"{haveKeys} == {shortest}");
+            }
 
             Cache[cacheKey] = shortest;
             return shortest;

@@ -8,12 +8,12 @@ namespace AdventOfCode.Tests
     public class Day18Tests
     {
         private readonly ITestOutputHelper output;
-        private readonly Day18 solver;
+        private readonly Day18Attempt2 solver;
 
         public Day18Tests(ITestOutputHelper output)
         {
             this.output = output;
-            this.solver = new Day18();
+            this.solver = new Day18Attempt2();
         }
 
         private static string[] GetRealInput()
@@ -81,7 +81,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 5068;
 
             var result = solver.Part1(GetRealInput());
             output.WriteLine($"Day 18 - Part 1 - {result}");
