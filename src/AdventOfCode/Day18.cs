@@ -22,6 +22,8 @@ namespace AdventOfCode
             [Move.East] = (1, 0)
         };
 
+        private static readonly Dictionary<(Point2D key, string collected), int> Cache = new Dictionary<(Point2D key, string collected), int>(100000);
+
         public int Part1(string[] input)
         {
             char[,] grid = new char[input.Length, input[0].Length];
@@ -39,7 +41,7 @@ namespace AdventOfCode
 
                     if (c >= 'a' && c <= 'z')
                     {
-                        keys.Add(c, (x,y));
+                        keys.Add(c, (x, y));
                     }
                     else if (c >= 'A' && c <= 'Z')
                     {
@@ -53,25 +55,14 @@ namespace AdventOfCode
             }
 
             var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
-            BuildGraph(graph, grid, start);
+            DiscoverMaze(graph, grid, start);
 
-            // calculate the path from each key to each other key, and also from origin
-            var points = Enumerable.Append(keys.Values, start).ToList();
-            var distances = points.Cartesian(points, (p1, p2) => (start: p1, end: p2))
-                                  .ToDictionary(k => k, pair => graph.GetShortestPath(pair.start, pair.end));
+            var paths = Enumerable.Append(keys.Values, start)
+                                  .ToDictionary(k => k, k => GetKeyTargets(graph, k, keys, doors));
 
-            int shortest = Branch(distances, keys, doors, start, string.Empty);
+            int shortest = CollectKeys(paths, start, string.Empty);
+
             return shortest;
-
-            // 9126 -- wrong -- started in wrong place (41,41)
-            // 9084 -- wrong -- started in right place (40,40), do keys a-z
-            // 9658 -- wrong -- can't remember what I tried on this one
-            // 3130 -- wrong -- always pick the closest other key
-            // 6186 -- wrong -- pick the closest other key which isn't behind a door
-            // missing the trick here - need to somehow branch and pick the 'overall' best path instead of min-maxing or max-minning
-            // 5588 -- wrong -- make sure there's also not another key in the way otherwise that one is shorter
-            // 5738 - wrong, but at least starting to cache stuff and it's fast now, ~1min
-            // 5076 - STILL wrong, but works on sample input, and takes ~1min
         }
 
         public int Part2(string[] input)
@@ -84,7 +75,13 @@ namespace AdventOfCode
             return 0;
         }
 
-        private static void BuildGraph(Graph<Point2D> graph, char[,] grid, Point2D current)
+        /// <summary>
+        /// Discover the graph of the maze
+        /// </summary>
+        /// <param name="graph">Graph to populate</param>
+        /// <param name="grid">Character grid</param>
+        /// <param name="current">Current location</param>
+        private static void DiscoverMaze(Graph<Point2D> graph, char[,] grid, Point2D current)
         {
             // try and go in each direction, and unwind after successful move attempt
             foreach (Move move in Deltas.Keys)
@@ -109,17 +106,45 @@ namespace AdventOfCode
                 graph.AddVertex(next, current);
 
                 // DFS
-                BuildGraph(graph, grid, next);
+                DiscoverMaze(graph, grid, next);
             }
         }
 
-        private static readonly Dictionary<(Point2D key, string collected), int> Cache = new Dictionary<(Point2D key, string collected), int>(100000);
+        /// <summary>
+        /// Get the shortest paths from a given location to all keys, noting which keys are required to take each path
+        /// </summary>
+        /// <param name="graph">Maze graph</param>
+        /// <param name="start">Start location</param>
+        /// <param name="keys">Key locations</param>
+        /// <param name="doors">Door locations</param>
+        /// <returns>Key to target keys lookup</returns>
+        private static List<KeyTarget> GetKeyTargets(Graph<Point2D> graph, Point2D start, Dictionary<char, Point2D> keys, Dictionary<char, Point2D> doors)
+        {
+            var paths = new List<KeyTarget>(keys.Count);
 
-        private static int Branch(Dictionary<(Point2D start, Point2D end), List<(Point2D node, int distance)>> paths,
-                                  Dictionary<char, Point2D> keys,
-                                  Dictionary<char, Point2D> doors,
-                                  Point2D start,
-                                  string haveKeys)
+            foreach (var key in keys)
+            {
+                var path = graph.GetShortestPath(start, key.Value).Select(p => p.node).ToHashSet();
+
+                char[] requiredDoors = doors.Where(d => path.Contains(d.Value))
+                                            .Select(d => d.Key.ToLower())
+                                            .OrderBy(c => c)
+                                            .ToArray();
+
+                paths.Add(new KeyTarget(key.Key, key.Value, path.Count, new string(requiredDoors)));
+            }
+
+            return paths;
+        }
+
+        /// <summary>
+        /// Collect remaining keys from the given start location
+        /// </summary>
+        /// <param name="paths">Lookup of key to other keys</param>
+        /// <param name="start">Start location</param>
+        /// <param name="haveKeys">Keys collected so far</param>
+        /// <returns>Shortest path to collect all remaining keys</returns>
+        private static int CollectKeys(IReadOnlyDictionary<Point2D, List<KeyTarget>> paths, Point2D start, string haveKeys)
         {
             var cacheKey = (start, new string(haveKeys.OrderBy(c => c).ToArray()));
 
@@ -129,57 +154,52 @@ namespace AdventOfCode
                 return Cache[cacheKey];
             }
 
-            // find the keys you can get to (i.e. without hitting a locked door)
-            KeyValuePair<char, Point2D>[] availableKeys = keys.Where(k => !haveKeys.Contains(k.Key))
-                                                              .Where(k =>
-                                                              {
-                                                                  var path = paths[(start, k.Value)];
-                                                                  return path != null && !path.Any(p => doors.ContainsValue(p.node)); // not behind a locked door
-                                                              })
-                                                              .ToArray();
+            // don't visit already-collected keys or blocked paths
+            var remainingKeys = paths[start].Where(p => !haveKeys.Contains(p.Id));
+            var availableKeys = remainingKeys.Where(p => !p.RequiredKeys.Except(haveKeys).Any())
+                                             .OrderBy(k => k.Distance)
+                                             .ToArray();
 
-            if (!availableKeys.Any())
+            int result = 0;
+
+            if (availableKeys.Any())
             {
-                return 0;
-            }
+                var possibilities = new Dictionary<char, int>(availableKeys.Length);
 
-            var possibilities = new Dictionary<char, int>();
-
-            // branch on each available key with a DFS
-            foreach (KeyValuePair<char, Point2D> key in availableKeys)
-            {
-                // work out which keys/doors are yet to be opened - this is slow but we need to clone the dict minus this one key/door
-                var remainingDoors = doors.Where(k => k.Key != key.Key.ToUpper()).ToDictionary(k => k.Key, k => k.Value);
-
-                // add the distance from current key to next possible key
-                var path = paths[(start, key.Value)];
-
-                // branch out - note the name of the flippin' problem! Many worlds!
-                int branchLength = Branch(paths, keys, remainingDoors, key.Value, haveKeys + key.Key);
-
-                if (branchLength == 0)
+                foreach (var key in availableKeys)
                 {
-                    Debug.WriteLine($"{haveKeys} == {path.Count}");
+                    // branch out using DFS - note the name of the flippin' problem! Many worlds!
+                    possibilities[key.Id] = key.Distance + CollectKeys(paths, key.Location, haveKeys + key.Id);
                 }
 
-                // track which branch was the shortest one
-                possibilities[key.Key] = path.Count + branchLength;
+                result = possibilities.Values.Min();
             }
 
-            int shortest = possibilities.Values.Min();
+            Debug.WriteLine($"{result}\t\t{start}\t\t{haveKeys}");
 
-            /*if (Cache.Count % 1000 == 0)
-            {
-                Debug.WriteLine($"{haveKeys} == {shortest}");
-            }*/
+            Cache[cacheKey] = result;
+            return result;
+        }
 
-            if (haveKeys == string.Empty)
+        public class KeyTarget
+        {
+            public char Id { get; }
+            public Point2D Location { get; }
+            public int Distance { get; }
+            public string RequiredKeys { get; }
+
+            public KeyTarget(char id, Point2D location, int distance, string requiredKeys)
             {
-                Debug.WriteLine($"{haveKeys} == {shortest}");
+                this.Id = id;
+                this.Location = location;
+                this.Distance = distance;
+                this.RequiredKeys = requiredKeys;
             }
 
-            Cache[cacheKey] = shortest;
-            return shortest;
+            public override string ToString()
+            {
+                return $"Id: {this.Id}, Location: {this.Location}, Distance: {this.Distance}, RequiredKeys: {this.RequiredKeys}";
+            }
         }
     }
 }

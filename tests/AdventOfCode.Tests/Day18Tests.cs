@@ -8,12 +8,12 @@ namespace AdventOfCode.Tests
     public class Day18Tests
     {
         private readonly ITestOutputHelper output;
-        private readonly Day18Attempt2 solver;
+        private readonly Day18 solver;
 
         public Day18Tests(ITestOutputHelper output)
         {
             this.output = output;
-            this.solver = new Day18Attempt2();
+            this.solver = new Day18();
         }
 
         private static string[] GetRealInput()
