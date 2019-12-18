@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -21,10 +22,10 @@ namespace AdventOfCode.Tests
             return input;
         }
 
-        private static string[] GetSampleInput()
+        public static IEnumerable<object[]> GetSampleInput()
         {
-            /*return new[]
-            {
+            yield return new object[] {
+            new[] {
                 "#################",
                 "#i.G..c...e..H.p#",
                 "########.########",
@@ -34,25 +35,45 @@ namespace AdventOfCode.Tests
                 "########.########",
                 "#l.F..d...h..C.m#",
                 "#################",
-            };*/
+            }, 136 };
 
-            return new[]
+            yield return new object[]
             {
+            new[] {
 "########################",
 "#@..............ac.GI.b#",
 "###d#e#f################",
 "###A#B#C################",
 "###g#h#i################",
 "########################",
-            };
+            }, 81};
+
+            yield return new object[]
+            {
+                new[] {
+"########################",
+"#f.D.E.e.C.b.A.@.a.B.c.#",
+"######################.#",
+"#d.....................#",
+"########################",
+            }, 86};
+
+            yield return new object[]
+            {
+                new[] {
+"########################",
+"#...............b.C.D.f#",
+"#.######################",
+"#.....@.a.B.c.d.A.e.F.g#",
+"########################",
+            }, 132};
         }
 
-        [Fact]
-        public void Part1_SampleInput_ProducesCorrectResponse()
+        [Theory]
+        [MemberData(nameof(GetSampleInput))]
+        public void Part1_SampleInput_ProducesCorrectResponse(string[] input, int expected)
         {
-            var expected = 136;
-
-            var result = solver.Part1(GetSampleInput());
+            var result = solver.Part1(input);
 
             Assert.Equal(expected, result);
         }
@@ -68,7 +89,7 @@ namespace AdventOfCode.Tests
             Assert.Equal(expected, result);
         }
 
-        [Fact]
+        /*[Fact]
         public void Part2_SampleInput_ProducesCorrectResponse()
         {
             var expected = -1;
@@ -76,7 +97,7 @@ namespace AdventOfCode.Tests
             var result = solver.Part2(GetSampleInput());
 
             Assert.Equal(expected, result);
-        }
+        }*/
 
         [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()

@@ -60,7 +60,7 @@ namespace AdventOfCode
             var distances = points.Cartesian(points, (p1, p2) => (start: p1, end: p2))
                                   .ToDictionary(k => k, pair => graph.GetShortestPath(pair.start, pair.end));
 
-            int shortest = Branch(distances, keys, doors, start, string.Empty, 0);
+            int shortest = Branch(distances, keys, doors, start, string.Empty);
             return shortest;
 
             // 9126 -- wrong -- started in wrong place (41,41)
@@ -70,6 +70,8 @@ namespace AdventOfCode
             // 6186 -- wrong -- pick the closest other key which isn't behind a door
             // missing the trick here - need to somehow branch and pick the 'overall' best path instead of min-maxing or max-minning
             // 5588 -- wrong -- make sure there's also not another key in the way otherwise that one is shorter
+            // 5738 - wrong, but at least starting to cache stuff and it's fast now, ~1min
+            // 5076 - STILL wrong, but works on sample input, and takes ~1min
         }
 
         public int Part2(string[] input)
@@ -110,15 +112,25 @@ namespace AdventOfCode
                 BuildGraph(graph, grid, next);
             }
         }
+
+        private static readonly Dictionary<(Point2D key, string collected), int> Cache = new Dictionary<(Point2D key, string collected), int>(100000);
+
         private static int Branch(Dictionary<(Point2D start, Point2D end), List<(Point2D node, int distance)>> paths,
                                   Dictionary<char, Point2D> keys,
                                   Dictionary<char, Point2D> doors,
                                   Point2D start,
-                                  string followed,
-                                  int distance)
+                                  string haveKeys)
         {
+            var cacheKey = (start, new string(haveKeys.OrderBy(c => c).ToArray()));
+
+            if (Cache.ContainsKey(cacheKey))
+            {
+                // already gone from this key whilst holding the current set of keys
+                return Cache[cacheKey];
+            }
+
             // find the keys you can get to (i.e. without hitting a locked door)
-            KeyValuePair<char, Point2D>[] availableKeys = keys.Where(k => !followed.Contains(k.Key))
+            KeyValuePair<char, Point2D>[] availableKeys = keys.Where(k => !haveKeys.Contains(k.Key))
                                                               .Where(k =>
                                                               {
                                                                   var path = paths[(start, k.Value)];
@@ -128,34 +140,33 @@ namespace AdventOfCode
 
             if (!availableKeys.Any())
             {
-                Debug.WriteLine($"{followed} == {distance}");
-                return distance;
+                return 0;
             }
 
-            int shortest = int.MaxValue;
+            var possibilities = new Dictionary<char, int>();
 
             // branch on each available key with a DFS
             foreach (KeyValuePair<char, Point2D> key in availableKeys)
             {
                 // work out which keys/doors are yet to be opened - this is slow but we need to clone the dict minus this one key/door
-                //var remainingKeys = keys.Where(k => k.Key != key.Key).ToDictionary(k => k.Key, k => k.Value);
                 var remainingDoors = doors.Where(k => k.Key != key.Key.ToUpper()).ToDictionary(k => k.Key, k => k.Value);
-                var newFollowed = followed + key.Key;
 
-                // keep track of distance so far
+                // add the distance from current key to next possible key
                 var path = paths[(start, key.Value)];
-                var newDistance = distance + path.Count;
+                //var newDistance = distance + path.Count;
 
                 // branch out - note the name of the flippin' problem! Many worlds!
-                int branchLength = Branch(paths, keys, remainingDoors, key.Value, newFollowed, newDistance);
+                int branchLength = Branch(paths, keys, remainingDoors, key.Value, haveKeys + key.Key);
 
-                // decide which branch was the shortest one
-                if (branchLength < shortest)
-                {
-                    shortest = branchLength;
-                }
+                // track which branch was the shortest one
+                possibilities[key.Key] = path.Count + branchLength;
             }
 
+            int shortest = possibilities.Values.Min();
+
+            Debug.WriteLine($"{haveKeys} == {shortest}");
+
+            Cache[cacheKey] = shortest;
             return shortest;
         }
     }
