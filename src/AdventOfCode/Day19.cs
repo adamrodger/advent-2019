@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using AdventOfCode.IntCode;
+﻿using AdventOfCode.IntCode;
 
 namespace AdventOfCode
 {
@@ -17,16 +15,10 @@ namespace AdventOfCode
             {
                 for (int x = 0; x < 50; x++)
                 {
-                    var vm = new IntCodeEmulator(input);
-                    vm.ExecuteUntilYield();
-
-                    vm.StdIn.Enqueue(x);
-                    vm.ExecuteUntilYield();
-
-                    vm.StdIn.Enqueue(y);
-                    vm.ExecuteUntilYield();
-
-                    sum += (int)vm.StdOut.Dequeue();
+                    if (IsInRange(input, x, y))
+                    {
+                        sum++;
+                    }
                 }
             }
 
@@ -35,12 +27,39 @@ namespace AdventOfCode
 
         public int Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
+            // start a good way down
+            int x = 0;
+            int y = 100;
 
-            return 0;
+            while (true)
+            {
+                // walk x across until you hit the edge of the beam
+                while (!IsInRange(input, x, y))
+                {
+                    x++;
+                }
+
+                // check if it's big enough for a 100x100 square
+                if (IsInRange(input, x + 99, y - 99))
+                {
+                    return (x * 10000) + (y - 99);
+                }
+
+                // walk y down
+                y++;
+            }
+        }
+
+        private static bool IsInRange(string[] input, int x, int y)
+        {
+            var vm = new IntCodeEmulator(input);
+
+            vm.StdIn.Enqueue(x);
+            vm.StdIn.Enqueue(y);
+
+            vm.Execute();
+
+            return vm.StdOut.Dequeue() == 1;
         }
     }
 }
