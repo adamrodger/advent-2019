@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
@@ -88,10 +87,18 @@ namespace AdventOfCode.IntCode
         /// <summary>
         /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
         /// </summary>
-        /// <param name="program">Program instructions</param>
-        public IntCodeEmulator(IReadOnlyList<string> program)
+        /// <param name="program">Program instructions to parse</param>
+        public IntCodeEmulator(IReadOnlyList<string> program) : this(program[0].Numbers<long>().Pad(program[0].Length * 2))
         {
-            this.Program = program[0].Numbers<long>().Pad(program[0].Length * 2).ToArray();
+        }
+
+        /// <summary>
+        /// Initialises a new instance of the <see cref="IntCodeEmulator"/> class.
+        /// </summary>
+        /// <param name="program">Program instructions</param>
+        public IntCodeEmulator(IEnumerable<long> program)
+        {
+            this.Program = program.ToArray();
             this.StdIn = new Queue<long>();
             this.StdOut = new Queue<long>();
             this.Pointer = 0;
@@ -156,10 +163,7 @@ namespace AdventOfCode.IntCode
 
             // parse opcode
             (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) = ParseOpcode(rawOpCode);
-
-            // get the instruction and args
-            Instruction instruction = this.Instructions[opCode];
-            long[] args = this.Program.Skip((int)this.Pointer).Take(instruction.Args).Pad(3, Unused).ToArray();
+            (Instruction instruction, long[] args) = this.GetInstruction(opCode);
 
             if (this.Verbose && Debugger.IsAttached)
             {
@@ -188,6 +192,25 @@ namespace AdventOfCode.IntCode
 
             // skip the args to the next instruction
             this.Pointer += instruction.Args;
+        }
+
+        /// <summary>
+        /// Get the instruction and arguments for the given opcode from the current pointer
+        /// </summary>
+        /// <param name="opCode">OpCode</param>
+        /// <returns>Instruction and its arguments, padded to 3 elements</returns>
+        private (Instruction instruction, long[] args) GetInstruction(OpCode opCode)
+        {
+            Instruction instruction = this.Instructions[opCode];
+
+            long[] args = new long[3];
+
+            for (int i = 0; i < instruction.Args; i++)
+            {
+                args[i] = this.Program[this.Pointer + i];
+            }
+
+            return (instruction, args);
         }
 
         /// <summary>
@@ -244,16 +267,16 @@ namespace AdventOfCode.IntCode
         /// Decode "immediate mode" opcodes to the opcode plus its parameter modes
         /// </summary>
         /// <param name="rawOpCode">Raw opcode value</param>
-        /// <returns></returns>
+        /// <returns>Parsed opcode and parameter modes</returns>
         private static (OpCode opCode, ParameterMode modeA, ParameterMode modeB, ParameterMode modeC) ParseOpcode(long rawOpCode)
         {
             long opCode = rawOpCode % 100;
             string s = rawOpCode.ToString().PadLeft(5, '0');
 
             return ((OpCode)opCode,
-                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[2].ToString()),
-                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[1].ToString()),
-                    (ParameterMode)Enum.Parse(typeof(ParameterMode), s[0].ToString()));
+                    (ParameterMode)(int)char.GetNumericValue(s[2]),
+                    (ParameterMode)(int)char.GetNumericValue(s[1]),
+                    (ParameterMode)(int)char.GetNumericValue(s[0]));
         }
     }
 }
