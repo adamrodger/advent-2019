@@ -10,40 +10,38 @@ namespace AdventOfCode
     /// </summary>
     public class Day20
     {
-        private const int Outer = 1;
-        private const int Inner = -1;
+        private const int OuterDelta = 1;
+        private const int InnerDelta = -1;
 
         public int Part1(string[] input)
         {
-            char[,] grid = input.ToGrid();
-
-            // find all the portals and index each end of them
-            Dictionary<Point2D, Point3D> portals = FindPortals(grid, false);
-
-            // construct the graph
-            Point3D start = portals[("AA", 0)];
-            Point3D end = portals[("ZZ", 0)];
-
-            Graph<Point3D> graph = BuildGraph(grid, portals, start);
-
-            // shortest path between AA and ZZ
-            List<(Point3D node, int distance)> path = graph.GetShortestPath(start, end);
-
-            return path.Count;
+            return GetShortestPath(input, false);
         }
 
         public int Part2(string[] input)
         {
+            return GetShortestPath(input, true);
+        }
+
+        /// <summary>
+        /// Get the shortest path from AA to ZZ
+        /// </summary>
+        /// <param name="input">Puzzle input</param>
+        /// <param name="layered">Whether the maze is layered or not</param>
+        /// <returns>Shortest path</returns>
+        private static int GetShortestPath(string[] input, bool layered)
+        {
             char[,] grid = input.ToGrid();
 
-            // find all the portals and index each end of them
-            Dictionary<(string, int), Point2D> portals = FindPortals(grid, true);
+            // find all the portals and join each end of them
+            Dictionary<(string id, bool outer), Point2D> portals = FindPortals(grid);
+            Dictionary<Point2D, Point3D> connected = ConnectPortals(portals, layered);
 
             // construct the graph
-            Point3D start = portals[("AA", Outer)];
-            Point3D end = portals[("ZZ", Outer)];
+            Point3D start = portals[("AA", true)];
+            Point3D end = portals[("ZZ", true)];
 
-            Graph<Point3D> graph = BuildGraph(grid, portals, start);
+            Graph<Point3D> graph = BuildGraph(grid, connected, start, end);
 
             // shortest path between AA and ZZ
             List<(Point3D node, int distance)> path = graph.GetShortestPath(start, end);
@@ -55,11 +53,10 @@ namespace AdventOfCode
         /// Find all the portals on the grid
         /// </summary>
         /// <param name="grid">Maze grid</param>
-        /// <param name="part2">Is part 2 running?</param>
-        /// <returns>Map of (ID, layer delta) to location for each portal</returns>
-        private static Dictionary<Point2D, Point3D> FindPortals(char[,] grid, bool part2)
+        /// <returns>Map of (ID, outer) to location for each portal</returns>
+        private static Dictionary<(string id, bool outer), Point2D> FindPortals(char[,] grid)
         {
-            var portals = new Dictionary<Point2D, Point3D>();
+            var portalIndex = new Dictionary<(string id, bool outer), Point2D>();
 
             grid.ForEach((x, y, c) =>
             {
@@ -68,34 +65,76 @@ namespace AdventOfCode
                     return;
                 }
 
+                if (x + 1 > grid.GetLength(1) - 1 || y + 1 > grid.GetLength(0) - 1)
+                {
+                    // too close to the right or bottom sides to look for the other part of the ID
+                    return;
+                }
+
                 // check if this is the first letter in a portal ID - i.e. there's another letter to the right or below
-                char right = grid[y, x + 1];
-                char below = grid[y + 1, x];
+                Point2D right = (x + 1, y);
+                Point2D below = (x, y + 1);
 
                 bool isOuter = x < 2
                             || y < 2
                             || x >= grid.GetLength(1) - 2
                             || y >= grid.GetLength(0) - 2;
 
-                int delta = part2
-                                ? isOuter ? Outer : Inner
-                                : 0;
+                if (char.IsUpper(grid[right.Y, right.X]))
+                {
+                    // left-to-right ID, so maze tile is either on the left or the right
+                    string id = new string(new [] { c, grid[right.Y, right.X] });
 
-                if (char.IsUpper(right))
-                {
-                    // left-to-right ID, so maze tile is on the right
-                    string id = new string(new [] { c, right });
-                    portals[id] = (x + 2, y, delta);
+                    Point2D mazeLeft = (x - 1, y);
+                    Point2D mazeRight = (x + 2, y);
+
+                    portalIndex[(id, isOuter)] = mazeLeft.X > 0 && grid[mazeLeft.Y, mazeLeft.X] == '.'
+                        ? mazeLeft
+                        : mazeRight;
                 }
-                else if (char.IsUpper(below))
+                else if (char.IsUpper(grid[below.Y, below.X]))
                 {
-                    // top-to-bottom ID, so maze is below
-                    string id = new string(new [] { c, below});
-                    portals[id] = (x, y + 2, delta);
+                    // top-to-bottom ID, so maze tile is either above or below
+                    string id = new string(new[] { c, grid[below.Y, below.X] });
+
+                    Point2D mazeAbove = (x, y - 1);
+                    Point2D mazeBelow = (x, y + 2);
+
+                    portalIndex[(id, isOuter)] = mazeAbove.Y > 0 && grid[mazeAbove.Y, mazeAbove.X] == '.'
+                        ? mazeAbove
+                        : mazeBelow;
                 }
             });
 
-            return portals;
+            return portalIndex;
+        }
+
+        /// <summary>
+        /// Connect inner and outer portals together
+        /// </summary>
+        /// <param name="portals">Portal lookup</param>
+        /// <param name="layered">Whether the map is layered (part 2) or not (part 1)</param>
+        /// <returns>Portal jump points</returns>
+        private static Dictionary<Point2D, Point3D> ConnectPortals(Dictionary<(string id, bool outer), Point2D> portals, bool layered)
+        {
+            var connected = new Dictionary<Point2D, Point3D>(portals.Count);
+
+            foreach ((string id, _) in portals.Keys.Where(k => k.outer))
+            {
+                if (id == "AA" || id == "ZZ")
+                {
+                    // these have no warp point
+                    continue;
+                }
+
+                Point2D outer = portals[(id, true)];
+                Point2D inner = portals[(id, false)];
+
+                connected[outer] = new Point3D(inner.X, inner.Y, layered ? InnerDelta : 0);
+                connected[inner] = new Point3D(outer.X, outer.Y, layered ? OuterDelta : 0);
+            }
+
+            return connected;
         }
 
         /// <summary>
@@ -105,9 +144,9 @@ namespace AdventOfCode
         /// <param name="portals">Portals</param>
         /// <param name="start">Start point</param>
         /// <returns>Maze as a 3D graph of vertices</returns>
-        private static Graph<Point3D> BuildGraph(char[,] grid, Dictionary<Point2D, Point3D> portals, Point3D start)
+        private static Graph<Point3D> BuildGraph(char[,] grid, Dictionary<Point2D, Point3D> portals, Point3D start, Point3D end)
         {
-            int recursionLimit = Math.Max(10, (int)(portals.Count * 0.5));
+            int recursionLimit = Math.Max(10, portals.Count / 2);
 
             var graph = new Graph<Point3D>();
             var todo = new Queue<Point3D>();
@@ -118,6 +157,12 @@ namespace AdventOfCode
             while (todo.Any())
             {
                 Point3D current = todo.Dequeue();
+
+                if (current == end)
+                {
+                    // reached destination
+                    break;
+                }
 
                 foreach (Point3D next in current.Adjacent4())
                 {
@@ -139,15 +184,15 @@ namespace AdventOfCode
 
                     if (char.IsUpper(c))
                     {
-                        if (!portals.ContainsKey(destination))
+                        if (!portals.ContainsKey(current))
                         {
                             // portal has no other end (which AA and ZZ don't)
                             continue;
                         }
 
-                        // warp over to the other end of the portal and increase/decrease the layer if necessary
-                        var portal = portals[destination];
-                        destination = new Point3D(portal.X, portal.Y, portal.Z + destination.Z);
+                        // update destination to the other end of the portal (which may involve changing layer in part 2)
+                        var portal = portals[current];
+                        destination = new Point3D(portal.X, portal.Y, portal.Z + current.Z);
 
                         if (visited.Contains(destination) || destination.Z < 0 || destination.Z > recursionLimit)
                         {

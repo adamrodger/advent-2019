@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AdventOfCode.Utilities
 {
-    public struct Point2D : IEquatable<Point2D>
+    public class Point2D : IEquatable<Point2D>
     {
         public int X { get; }
 
