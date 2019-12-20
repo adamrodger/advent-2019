@@ -12,35 +12,35 @@ namespace AdventOfCode
     /// </summary>
     public class Day20
     {
+        private const int Outer = -1;
+        private const int Inner = 1;
+
         public int Part1(string[] input)
         {
-            char[,] grid = input.ToGrid();
-
-            // find all the teleporters and index each end of them
-            Dictionary<string, HashSet<Point2D>> teleporters = FindTeleporters(grid);
-
-            // construct the graph
-            Graph<Point2D> graph = BuildGraph(grid, teleporters);
-
-            // shortest path between AA and ZZ
-            List<(Point2D node, int distance)> path = graph.GetShortestPath(teleporters["AA"].First(), teleporters["ZZ"].First());
-
-            return path.Count;
+            throw new NotImplementedException("Doing part 2");
         }
 
         public int Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
+            char[,] grid = input.ToGrid();
 
-            return 0;
+            // find all the teleporters and index each end of them
+            Dictionary<(string, int), Point2D> teleporters = FindTeleporters(grid);
+
+            // construct the graph
+            Graph<Point3D> graph = BuildGraph(grid, teleporters);
+
+            // shortest path between AA and ZZ
+            List<(Point3D node, int distance)> path = graph.GetShortestPath(teleporters[("AA", Outer)], teleporters[("ZZ", Outer)]);
+
+            Debug.Assert(path != null);
+
+            return path.Count;
         }
 
-        private static Dictionary<string, HashSet<Point2D>> FindTeleporters(char[,] grid)
+        private static Dictionary<(string, int), Point2D> FindTeleporters(char[,] grid)
         {
-            var teleporters = new Dictionary<string, HashSet<Point2D>>();
+            var teleporters = new Dictionary<(string, int), Point2D>();
 
             grid.ForEach((x, y, c) =>
             {
@@ -57,6 +57,8 @@ namespace AdventOfCode
                 }
 
                 Point2D start = (x, y);
+                int delta = GetTransporterDelta(grid, start);
+
                 Point2D join = default;
 
                 string id = GetTeleporterId(grid, start);
@@ -73,10 +75,20 @@ namespace AdventOfCode
 
                 Debug.Assert(join != default);
 
-                teleporters.GetOrCreate(id).Add(join);
+                teleporters[(id, delta)] = join;
             });
 
             return teleporters;
+        }
+
+        private static int GetTransporterDelta(char[,] grid, Point2D current)
+        {
+            return current.X < 2
+                || current.Y < 2
+                || current.X >= grid.GetLength(1) - 2
+                || current.Y >= grid.GetLength(0) - 2
+                       ? Outer
+                       : Inner;
         }
 
         private static string GetTeleporterId(char[,] grid, Point2D start)
@@ -101,21 +113,21 @@ namespace AdventOfCode
             throw new InvalidOperationException($"Start is not a teleporter ID: {start}");
         }
 
-        private static Graph<Point2D> BuildGraph(char[,] grid, Dictionary<string, HashSet<Point2D>> teleporters)
+        private static Graph<Point3D> BuildGraph(char[,] grid, Dictionary<(string, int), Point2D> teleporters)
         {
-            var graph = new Graph<Point2D>();
+            var graph = new Graph<Point3D>();
 
-            Queue<Point2D> todo = new Queue<Point2D>();
-            HashSet<Point2D> visited = new HashSet<Point2D>();
+            var todo = new Queue<Point3D>();
+            var visited = new HashSet<Point3D>();
 
-            Point2D start = teleporters["AA"].First();
+            Point3D start = teleporters[("AA", Outer)];
             todo.Enqueue(start);
 
             while (todo.Any())
             {
-                var current = todo.Dequeue();
+                Point3D current = todo.Dequeue();
 
-                foreach (Point2D next in current.Adjacent4())
+                foreach (Point3D next in current.Adjacent4())
                 {
                     if (visited.Contains(next))
                     {
@@ -134,17 +146,31 @@ namespace AdventOfCode
                     if (char.IsUpper(c))
                     {
                         string id = GetTeleporterId(grid, next);
+                        int otherPortal = GetTransporterDelta(grid, next) * -1;
 
-                        // add the path to the other end of the teleporter
-                        var teleport = teleporters[id].FirstOrDefault(t => t != current);
+                        if (!teleporters.ContainsKey((id, otherPortal)))
+                        {
+                            continue;
+                        }
+
+                        // add the path to the other end of the teleporter and increase/decrease the layer
+                        var teleport = teleporters[(id, otherPortal)];
+
+                        var destination = new Point3D(teleport.X, teleport.Y, next.Z + otherPortal);
+
+                        if (destination.Z > 0 || destination.Z < -150)
+                        {
+                            // in a loop, sack it off
+                            continue;
+                        }
 
                         // AA and ZZ are one-way so this would be default
-                        if (teleport != default && !visited.Contains(teleport))
+                        if (teleport != default && !visited.Contains(destination))
                         {
-                            graph.AddVertex(current, teleport);
-                            graph.AddVertex(teleport, current);
+                            graph.AddVertex(current, destination);
+                            graph.AddVertex(destination, current);
 
-                            todo.Enqueue(teleport);
+                            todo.Enqueue(destination);
                         }
 
                         // don't walk outwards, no point

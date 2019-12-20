@@ -23,7 +23,7 @@ namespace AdventOfCode.Tests
 
         private static string[] GetSampleInput()
         {
-            return new string[]
+            return new[]
             {
                 "         A           ",
                 "         A           ",
@@ -71,7 +71,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 26;
 
             var result = solver.Part2(GetSampleInput());
 

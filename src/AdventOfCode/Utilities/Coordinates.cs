@@ -63,6 +63,11 @@ namespace AdventOfCode.Utilities
             return new Point2D(coordinates.x, coordinates.y);
         }
 
+        public static implicit operator Point2D(Point3D point)
+        {
+            return new Point2D(point.X, point.Y);
+        }
+
         public static Point2D operator +(Point2D a, Point2D b)
         {
             return new Point2D(a.X + b.X, a.Y + b.Y);
@@ -167,9 +172,22 @@ namespace AdventOfCode.Utilities
             return new Point3D(coordinates.x, coordinates.y, coordinates.z);
         }
 
+        public static implicit operator Point3D(Point2D point)
+        {
+            return new Point3D(point.X, point.Y, 0);
+        }
+
         public static Point3D operator +(Point3D a, Point3D b)
         {
             return new Point3D(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        }
+
+        public IEnumerable<Point3D> Adjacent4()
+        {
+            yield return new Point3D(this.X, this.Y - 1, this.Z);
+            yield return new Point3D(this.X - 1, this.Y, this.Z);
+            yield return new Point3D(this.X + 1, this.Y, this.Z);
+            yield return new Point3D(this.X, this.Y + 1, this.Z);
         }
 
         public override string ToString()
