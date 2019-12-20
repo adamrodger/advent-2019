@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
-using MoreLinq;
 
 namespace AdventOfCode
 {
@@ -12,12 +10,26 @@ namespace AdventOfCode
     /// </summary>
     public class Day20
     {
-        private const int Outer = -1;
-        private const int Inner = 1;
+        private const int Outer = 1;
+        private const int Inner = -1;
 
         public int Part1(string[] input)
         {
-            throw new NotImplementedException("Doing part 2");
+            char[,] grid = input.ToGrid();
+
+            // find all the portals and index each end of them
+            Dictionary<Point2D, Point3D> portals = FindPortals(grid, false);
+
+            // construct the graph
+            Point3D start = portals[("AA", 0)];
+            Point3D end = portals[("ZZ", 0)];
+
+            Graph<Point3D> graph = BuildGraph(grid, portals, start);
+
+            // shortest path between AA and ZZ
+            List<(Point3D node, int distance)> path = graph.GetShortestPath(start, end);
+
+            return path.Count;
         }
 
         public int Part2(string[] input)
@@ -25,15 +37,16 @@ namespace AdventOfCode
             char[,] grid = input.ToGrid();
 
             // find all the portals and index each end of them
-            Dictionary<(string, int), Point2D> portals = FindPortals(grid);
+            Dictionary<(string, int), Point2D> portals = FindPortals(grid, true);
 
             // construct the graph
-            Graph<Point3D> graph = BuildGraph(grid, portals);
+            Point3D start = portals[("AA", Outer)];
+            Point3D end = portals[("ZZ", Outer)];
+
+            Graph<Point3D> graph = BuildGraph(grid, portals, start);
 
             // shortest path between AA and ZZ
-            List<(Point3D node, int distance)> path = graph.GetShortestPath(portals[("AA", Outer)], portals[("ZZ", Outer)]);
-
-            Debug.Assert(path != null);
+            List<(Point3D node, int distance)> path = graph.GetShortestPath(start, end);
 
             return path.Count;
         }
@@ -42,92 +55,47 @@ namespace AdventOfCode
         /// Find all the portals on the grid
         /// </summary>
         /// <param name="grid">Maze grid</param>
+        /// <param name="part2">Is part 2 running?</param>
         /// <returns>Map of (ID, layer delta) to location for each portal</returns>
-        private static Dictionary<(string, int), Point2D> FindPortals(char[,] grid)
+        private static Dictionary<Point2D, Point3D> FindPortals(char[,] grid, bool part2)
         {
-            var portals = new Dictionary<(string, int), Point2D>();
+            var portals = new Dictionary<Point2D, Point3D>();
 
             grid.ForEach((x, y, c) =>
             {
-                if (!char.IsLetter(c) || !char.IsUpper(c))
+                if (!char.IsUpper(c))
                 {
-                    // not a portal ID
                     return;
                 }
 
-                if (grid.Adjacent4(x, y).All(a => a != '.'))
+                // check if this is the first letter in a portal ID - i.e. there's another letter to the right or below
+                char right = grid[y, x + 1];
+                char below = grid[y + 1, x];
+
+                bool isOuter = x < 2
+                            || y < 2
+                            || x >= grid.GetLength(1) - 2
+                            || y >= grid.GetLength(0) - 2;
+
+                int delta = part2
+                                ? isOuter ? Outer : Inner
+                                : 0;
+
+                if (char.IsUpper(right))
                 {
-                    // wrong side of the ID, not connected to the maze
-                    return;
+                    // left-to-right ID, so maze tile is on the right
+                    string id = new string(new [] { c, right });
+                    portals[id] = (x + 2, y, delta);
                 }
-
-                Point2D start = (x, y);
-                int delta = GetLayerDelta(grid, start);
-
-                Point2D join = default;
-
-                string id = GetPortalId(grid, start);
-
-                // find the point connected to the maze
-                foreach (Point2D other in start.Adjacent4())
+                else if (char.IsUpper(below))
                 {
-                    if (grid[other.Y, other.X] == '.')
-                    {
-                        join = other;
-                        break;
-                    }
+                    // top-to-bottom ID, so maze is below
+                    string id = new string(new [] { c, below});
+                    portals[id] = (x, y + 2, delta);
                 }
-
-                Debug.Assert(join != default);
-
-                portals[(id, delta)] = join;
             });
 
             return portals;
-        }
-
-        /// <summary>
-        /// Get the delta for the portal at the current location
-        /// </summary>
-        /// <param name="grid">Maze grid</param>
-        /// <param name="portal">Portal location</param>
-        /// <returns>Layer delta for the portal</returns>
-        private static int GetLayerDelta(char[,] grid, Point2D portal)
-        {
-            return portal.X < 2
-                || portal.Y < 2
-                || portal.X >= grid.GetLength(1) - 2
-                || portal.Y >= grid.GetLength(0) - 2
-                       ? Outer
-                       : Inner;
-        }
-
-        /// <summary>
-        /// Get the ID of the portal at the given location
-        /// </summary>
-        /// <param name="grid">Maze grid</param>
-        /// <param name="portal">Portal location</param>
-        /// <returns>Portal ID</returns>
-        private static string GetPortalId(char[,] grid, Point2D portal)
-        {
-            foreach (Point2D other in portal.Adjacent4())
-            {
-                if (other.X < 0 || other.Y < 0 || other.X >= grid.GetLength(1) || other.Y >= grid.GetLength(0))
-                {
-                    // fell off the map
-                    continue;
-                }
-
-                if (char.IsUpper(grid[other.Y, other.X]))
-                {
-                    // found the other part of the ID - this assumes there are no pairs! e.g. there isn't an XY and YX
-                    char[] ordered = new[] { grid[portal.Y, portal.X], grid[other.Y, other.X] }.OrderBy(c => c).ToArray();
-                    string id = new string(ordered);
-                    return id;
-                }
-            }
-
-            throw new InvalidOperationException($"Start is not a portal ID: {portal}");
         }
 
         /// <summary>
@@ -135,14 +103,16 @@ namespace AdventOfCode
         /// </summary>
         /// <param name="grid">Maze grid</param>
         /// <param name="portals">Portals</param>
+        /// <param name="start">Start point</param>
         /// <returns>Maze as a 3D graph of vertices</returns>
-        private static Graph<Point3D> BuildGraph(char[,] grid, Dictionary<(string, int), Point2D> portals)
+        private static Graph<Point3D> BuildGraph(char[,] grid, Dictionary<Point2D, Point3D> portals, Point3D start)
         {
+            int recursionLimit = Math.Max(10, (int)(portals.Count * 0.5));
+
             var graph = new Graph<Point3D>();
             var todo = new Queue<Point3D>();
             var visited = new HashSet<Point3D>();
 
-            Point3D start = portals[("AA", Outer)];
             todo.Enqueue(start);
 
             while (todo.Any())
@@ -151,14 +121,16 @@ namespace AdventOfCode
 
                 foreach (Point3D next in current.Adjacent4())
                 {
-                    if (visited.Contains(next))
+                    Point3D destination = next;
+
+                    if (visited.Contains(destination))
                     {
                         continue;
                     }
 
                     visited.Add(current);
 
-                    char c = grid[next.Y, next.X];
+                    char c = grid[destination.Y, destination.X];
 
                     if (c == '#' || c == ' ')
                     {
@@ -167,43 +139,27 @@ namespace AdventOfCode
 
                     if (char.IsUpper(c))
                     {
-                        string id = GetPortalId(grid, next);
-                        int layerDelta = GetLayerDelta(grid, next) * -1;
-
-                        if (!portals.ContainsKey((id, layerDelta)))
+                        if (!portals.ContainsKey(destination))
                         {
                             // portal has no other end (which AA and ZZ don't)
                             continue;
                         }
 
-                        // add the path to the other end of the teleporter and increase/decrease the layer
-                        var teleport = portals[(id, layerDelta)];
+                        // warp over to the other end of the portal and increase/decrease the layer if necessary
+                        var portal = portals[destination];
+                        destination = new Point3D(portal.X, portal.Y, portal.Z + destination.Z);
 
-                        var destination = new Point3D(teleport.X, teleport.Y, next.Z + layerDelta);
-
-                        if (destination.Z > 0 || destination.Z < -25)
+                        if (visited.Contains(destination) || destination.Z < 0 || destination.Z > recursionLimit)
                         {
-                            // in a loop, sack it off
+                            // visited already or in a loop, sack it off
                             continue;
                         }
-
-                        // AA and ZZ are one-way so this would be default
-                        if (teleport != default && !visited.Contains(destination))
-                        {
-                            graph.AddVertex(current, destination);
-                            graph.AddVertex(destination, current);
-
-                            todo.Enqueue(destination);
-                        }
-
-                        // don't walk outwards, no point
-                        continue;
                     }
 
-                    graph.AddVertex(current, next);
-                    graph.AddVertex(next, current);
+                    graph.AddVertex(current, destination);
+                    graph.AddVertex(destination, current);
 
-                    todo.Enqueue(next);
+                    todo.Enqueue(destination);
                 }
             }
 
