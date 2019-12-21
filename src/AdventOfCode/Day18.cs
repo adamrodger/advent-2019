@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using AdventOfCode.Utilities;
 using MoreLinq;
 
@@ -26,36 +27,10 @@ namespace AdventOfCode
 
         public int Part1(string[] input)
         {
-            char[,] grid = new char[input.Length, input[0].Length];
-            var keys = new Dictionary<char, Point2D>();
-            var doors = new Dictionary<char, Point2D>();
-            Point2D start = (-1, -1);
+            char[,] grid = input.ToGrid();
+            Point2D start = grid.First(c => c == '@');
 
-            for (int y = 0; y < input.Length; y++)
-            {
-                for (int x = 0; x < input[y].Length; x++)
-                {
-                    char c = input[y][x];
-
-                    grid[y, x] = c;
-
-                    if (c >= 'a' && c <= 'z')
-                    {
-                        keys.Add(c, (x, y));
-                    }
-                    else if (c >= 'A' && c <= 'Z')
-                    {
-                        doors.Add(c, (x, y));
-                    }
-                    else if (c == '@')
-                    {
-                        start = (x, y);
-                    }
-                }
-            }
-
-            var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
-            DiscoverMaze(graph, grid, start);
+            (Graph<Point2D> graph, Dictionary<char, Point2D> keys, Dictionary<char, Point2D> doors) = DiscoverMaze(grid, start);
 
             var paths = Enumerable.Append(keys.Values, start)
                                   .ToDictionary(k => k, k => GetKeyTargets(graph, k, keys, doors));
@@ -78,36 +53,63 @@ namespace AdventOfCode
         /// <summary>
         /// Discover the graph of the maze
         /// </summary>
-        /// <param name="graph">Graph to populate</param>
         /// <param name="grid">Character grid</param>
-        /// <param name="current">Current location</param>
-        private static void DiscoverMaze(Graph<Point2D> graph, char[,] grid, Point2D current)
+        /// <param name="start">Start location</param>
+        /// <returns>Maze graph, lookups of door and key locations</returns>
+        private static (Graph<Point2D> graph, Dictionary<char, Point2D> keys, Dictionary<char, Point2D> doors) DiscoverMaze(char[,] grid, Point2D start)
         {
-            // try and go in each direction, and unwind after successful move attempt
-            foreach (Move move in Deltas.Keys)
+            var keys = new Dictionary<char, Point2D>();
+            var doors = new Dictionary<char, Point2D>();
+
+            // BFS to discover the maze and all keys/doors
+            var graph = new Graph<Point2D>(Graph<Point2D>.ManhattanDistanceHeuristic);
+            var visited = new HashSet<Point2D>();
+            var queue = new Queue<Point2D>();
+            queue.Enqueue(start);
+
+            while (queue.Any())
             {
-                Point2D delta = Deltas[move];
-                Point2D next = current + delta;
+                Point2D current = queue.Dequeue();
 
-                if (graph.Vertices.ContainsKey(next))
+                foreach (Move move in Deltas.Keys)
                 {
-                    // visited
-                    continue;
+                    Point2D delta = Deltas[move];
+                    Point2D next = current + delta;
+
+                    if (visited.Contains(next))
+                    {
+                        // visited
+                        continue;
+                    }
+
+                    visited.Add(next);
+
+                    char c = grid[next.Y, next.X];
+
+                    if (c == '#')
+                    {
+                        // wall
+                        continue;
+                    }
+                    
+                    if (c >= 'a' && c <= 'z')
+                    {
+                        keys[c] = next;
+                    }
+                    else if (c >= 'A' && c <= 'Z')
+                    {
+                        doors[c] = next;
+                    }
+
+                    // add two-way vertex since we've not hit a wall
+                    graph.AddVertex(current, next);
+                    graph.AddVertex(next, current);
+
+                    queue.Enqueue(next);
                 }
-
-                if (grid[next.Y, next.X] == '#')
-                {
-                    // wall
-                    continue;
-                }
-
-                // add two-way vertex since we've not hit a wall
-                graph.AddVertex(current, next);
-                graph.AddVertex(next, current);
-
-                // DFS
-                DiscoverMaze(graph, grid, next);
             }
+
+            return (graph, keys, doors);
         }
 
         /// <summary>
@@ -124,6 +126,11 @@ namespace AdventOfCode
 
             foreach (var key in keys)
             {
+                if (key.Value == start)
+                {
+                    continue;
+                }
+
                 var path = graph.GetShortestPath(start, key.Value).Select(p => p.node).ToHashSet();
 
                 char[] requiredDoors = doors.Where(d => path.Contains(d.Value))
@@ -150,12 +157,12 @@ namespace AdventOfCode
 
             if (Cache.ContainsKey(cacheKey))
             {
-                // already gone from this key whilst holding the current set of keys
+                // already gone from this key whilst holding the start set of keys
                 return Cache[cacheKey];
             }
 
             // don't visit already-collected keys or blocked paths
-            var remainingKeys = paths[start].Where(p => !haveKeys.Contains(p.Id));
+            var remainingKeys = paths[start].Where(p => !haveKeys.Contains(p.Id)).ToArray();
             var availableKeys = remainingKeys.Where(p => !p.RequiredKeys.Except(haveKeys).Any())
                                              .OrderBy(k => k.Distance)
                                              .ToArray();
@@ -175,7 +182,10 @@ namespace AdventOfCode
                 result = possibilities.Values.Min();
             }
 
-            Debug.WriteLine($"{result}\t\t{start}\t\t{haveKeys}");
+            /*if (haveKeys.Length == 26)
+            {
+                Debug.WriteLine($"{result}\t\t{start}\t\t{haveKeys}");
+            }*/
 
             Cache[cacheKey] = result;
             return result;
