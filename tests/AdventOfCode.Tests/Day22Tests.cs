@@ -96,9 +96,41 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Shuffle_Increment_ShufflesDeckCorrectly()
         {
-            int[] expected = {0, 3, 6, 9, 2, 5, 8, 1, 4, 7};
+            int[] expected = {0, 7, 4, 1, 8, 5, 2, 9, 6, 3};
 
             int[] actual = Day22.Shuffle(new[] { "deal with increment 3" }, expected.Length);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Shuffle_AllOperations_ShufflesDeck()
+        {
+            int[] expected = {3, 0, 7, 4, 1, 8, 5, 2, 9, 6};
+
+            int[] actual = Day22.Shuffle(new[]
+                                         {
+                                             "cut 6",
+                                             "deal with increment 7",
+                                             "deal into new stack"
+                                         },
+                                         expected.Length);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Shuffle_MultipleOperations_ShufflesDeck()
+        {
+            int[] expected = { 0, 3, 6, 9, 2, 5, 8, 1, 4, 7 };
+
+            int[] actual = Day22.Shuffle(new[]
+                                         {
+                                             "deal with increment 7",
+                                             "deal into new stack",
+                                             "deal into new stack"
+                                         },
+                                         expected.Length);
 
             Assert.Equal(expected, actual);
         }

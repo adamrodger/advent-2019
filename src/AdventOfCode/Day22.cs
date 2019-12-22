@@ -47,28 +47,33 @@ namespace AdventOfCode
 
             foreach (string instruction in input)
             {
+                int[] newDeck;
+
                 if (instruction == "deal into new stack")
                 {
-                    deck = deck.Reverse().ToArray();
-                    continue;
+                    newDeck = deck.Reverse().ToArray();
                 }
-
-                var newDeck = new int[count];
-                int n = instruction.Numbers<int>().First();
-
-                if (instruction.StartsWith("cut"))
+                else if (instruction.StartsWith("cut"))
                 {
-                    for (int i = 0; i < count; i++)
-                    {
-                        newDeck[i] = deck[(count + i + n) % count];
-                    }
+                    int n = instruction.Numbers<int>().First();
+
+                    // equiv to (i - n) but wraps round negatives
+                    newDeck = Enumerable.Range(0, count).Select(i => deck[(count + i + n) % count]).ToArray(); 
                 }
                 else if (instruction.StartsWith("deal with increment"))
                 {
+                    int n = instruction.Numbers<int>().First();
+
+                    newDeck = new int[count];
+
                     for (int i = 0; i < count; i++)
                     {
-                        newDeck[i] = deck[(i * n) % count];
+                        newDeck[(i * n) % count] = deck[i];
                     }
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException();
                 }
 
                 deck = newDeck;
