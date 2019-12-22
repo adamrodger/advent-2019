@@ -10,50 +10,11 @@ namespace AdventOfCode
     /// </summary>
     public class Day22
     {
-        public int Part1(string[] input, int N = 10007)
+        public int Part1(string[] input, int count = 10007)
         {
-            /*var deck = new Deque<int>(Enumerable.Range(0, N));
+            int[] deck = Shuffle(input, count);
 
-            foreach (string instruction in input)
-            {
-                var newDeck = new int[N];
-
-                if (instruction == "deal into new stack")
-                {
-                    for (int i = 0; i < N; i++)
-                    {
-                        newDeck[i] = deck[N - i - 1];
-                    }
-                }
-                else if (instruction.StartsWith("cut"))
-                {
-                    int n = instruction.Numbers<int>().First();
-
-                    for (int i = 0; i < N; i++)
-                    {
-                        newDeck[i] = deck[(N + i - n) % N];
-                    }
-                }
-                else if (instruction.StartsWith("deal with increment"))
-                {
-                    int n = instruction.Numbers<int>().First();
-
-                    for (int i = 0; i < N; i++)
-                    {
-                        newDeck[(n * i) % N] = deck.RemoveFromFront();
-                    }
-                }
-
-                deck = newDeck.ToDeque();
-            }
-
-            return deck.IndexOf(2019);*/
-
-            // 9525 -- too high
-            // 9403 -- too high
-            // 7753 -- too high
-
-            throw new NotImplementedException();
+            return Array.IndexOf(deck, 2019);
         }
 
         public BigInteger Part2(string[] input)
@@ -65,11 +26,55 @@ namespace AdventOfCode
             BigInteger y = ReverseShuffle(input, d, x); // that card's location one shuffle back in time
             BigInteger z = ReverseShuffle(input, d, y); // that card's location another shuffle back in time (i.e. 2 back from x)
 
+            // work out a and b in a*x+b, which is the simplified form of the reversing function equations
             BigInteger a = (y - z) * ModInverse(x - y + d, d) % d;
             BigInteger b = (y - a * x) % d;
 
+            // apply a*x+b for the known a, b and x
             var result = (BigInteger.ModPow(a, s, d) * x + (BigInteger.ModPow(a, s, d) - 1) * ModInverse(a - 1, d) * b) % d;
             return result;
+        }
+
+        /// <summary>
+        /// Shuffles a deck of the given size according to the given instructions
+        /// </summary>
+        /// <param name="input">Shuffling instructions</param>
+        /// <param name="count">Deck size</param>
+        /// <returns>Shuffled deck</returns>
+        public static int[] Shuffle(string[] input, int count)
+        {
+            var deck = Enumerable.Range(0, count).ToArray();
+
+            foreach (string instruction in input)
+            {
+                if (instruction == "deal into new stack")
+                {
+                    deck = deck.Reverse().ToArray();
+                    continue;
+                }
+
+                var newDeck = new int[count];
+                int n = instruction.Numbers<int>().First();
+
+                if (instruction.StartsWith("cut"))
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        newDeck[i] = deck[(count + i + n) % count];
+                    }
+                }
+                else if (instruction.StartsWith("deal with increment"))
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        newDeck[i] = deck[(i * n) % count];
+                    }
+                }
+
+                deck = newDeck;
+            }
+
+            return deck;
         }
 
         /// <summary>

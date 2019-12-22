@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <PackageReference Include="morelinq" Version="3.2.0" />
-    <PackageReference Include="Nito.Collections.Deque" Version="1.0.4" />
   </ItemGroup>
 
   <ItemGroup>
