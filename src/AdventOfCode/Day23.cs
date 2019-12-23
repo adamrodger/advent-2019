@@ -13,35 +13,17 @@ namespace AdventOfCode
     {
         public long Part1(string[] input)
         {
-            var vms = new Dictionary<long, IntCodeEmulator>(50);
-            var mailboxes = new Dictionary<long, Queue<long>>(50);
-
-            for (int id = 0; id < 50; id++)
-            {
-                var vm = new IntCodeEmulator(input);
-                vm.StdIn.Enqueue(id);
-                vm.ExecuteUntilYield();
-
-                mailboxes[id] = new Queue<long>();
-
-                vms[id] = vm;
-            }
+            Dictionary<long, IntCodeEmulator> vms = BuildVMs(input);
 
             while (true)
             {
                 for (int id = 0; id < 50; id++)
                 {
                     var vm = vms[id];
-                    var mailbox = mailboxes[id];
 
-                    if (!mailbox.Any())
+                    if (!vm.StdIn.Any())
                     {
-                        mailbox.Enqueue(-1);
-                    }
-
-                    while (mailbox.Any())
-                    {
-                        vm.StdIn.Enqueue(mailbox.Dequeue());
+                        vm.StdIn.Enqueue(-1);
                     }
 
                     vm.ExecuteUntilYield();
@@ -55,8 +37,8 @@ namespace AdventOfCode
                             return y;
                         }
 
-                        mailboxes[dest].Enqueue(x);
-                        mailboxes[dest].Enqueue(y);
+                        vms[dest].StdIn.Enqueue(x);
+                        vms[dest].StdIn.Enqueue(y);
                     }
                 }
             }
@@ -64,16 +46,7 @@ namespace AdventOfCode
 
         public long Part2(string[] input)
         {
-            var vms = new Dictionary<long, IntCodeEmulator>(50);
-
-            for (int id = 0; id < 50; id++)
-            {
-                var vm = new IntCodeEmulator(input);
-                vm.StdIn.Enqueue(id);
-                vm.ExecuteUntilYield();
-
-                vms[id] = vm;
-            }
+            Dictionary<long, IntCodeEmulator> vms = BuildVMs(input);
 
             var sent = new HashSet<long>();
             (long x, long y) nat = (0, 0);
@@ -121,6 +94,22 @@ namespace AdventOfCode
                     vms[0].StdIn.Enqueue(nat.y);
                 }
             }
+        }
+
+        private static Dictionary<long, IntCodeEmulator> BuildVMs(string[] input)
+        {
+            var vms = new Dictionary<long, IntCodeEmulator>(50);
+
+            for (int id = 0; id < 50; id++)
+            {
+                var vm = new IntCodeEmulator(input);
+                vm.StdIn.Enqueue(id);
+                vm.ExecuteUntilYield();
+
+                vms[id] = vm;
+            }
+
+            return vms;
         }
     }
 }
