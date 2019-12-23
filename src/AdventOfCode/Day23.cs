@@ -57,20 +57,70 @@ namespace AdventOfCode
 
                         mailboxes[dest].Enqueue(x);
                         mailboxes[dest].Enqueue(y);
-                        
                     }
                 }
             }
         }
 
-        public int Part2(string[] input)
+        public long Part2(string[] input)
         {
-            foreach (string line in input)
+            var vms = new Dictionary<long, IntCodeEmulator>(50);
+
+            for (int id = 0; id < 50; id++)
             {
-                throw new NotImplementedException("Part 2 not implemented");
+                var vm = new IntCodeEmulator(input);
+                vm.StdIn.Enqueue(id);
+                vm.ExecuteUntilYield();
+
+                vms[id] = vm;
             }
 
-            return 0;
+            var sent = new HashSet<long>();
+            (long x, long y) nat = (0, 0);
+
+            while (true)
+            {
+                for (int id = 0; id < 50; id++)
+                {
+                    var vm = vms[id];
+
+                    if (!vm.StdIn.Any())
+                    {
+                        vm.StdIn.Enqueue(-1);
+                    }
+
+                    vm.ExecuteUntilYield();
+
+                    while (vm.StdOut.Any())
+                    {
+                        var (dest, x, y) = (vm.StdOut.Dequeue(), vm.StdOut.Dequeue(), vm.StdOut.Dequeue());
+
+                        if (dest == 255)
+                        {
+                            nat.x = x;
+                            nat.y = y;
+                        }
+                        else
+                        {
+                            vms[dest].StdIn.Enqueue(x);
+                            vms[dest].StdIn.Enqueue(y);
+                        }
+                    }
+                }
+
+                // check for idle
+                if (vms.Values.All(vm => !vm.StdIn.Any()))
+                {
+                    if (!sent.Add(nat.y))
+                    {
+                        // sent twice
+                        return nat.y;
+                    }
+
+                    vms[0].StdIn.Enqueue(nat.x);
+                    vms[0].StdIn.Enqueue(nat.y);
+                }
+            }
         }
     }
 }
