@@ -125,7 +125,8 @@ namespace AdventOfCode
                         continue;
                     }
 
-                    var adjacent = GetAdjacentRecursive(space, x, y, z);
+                    var adjacent = GetAdjacentRecursive(space, x, y, z).ToArray();
+                    Debug.Assert(adjacent.Length == 4 || adjacent.Length == 8);
                     int count = adjacent.Count(c => c == '#');
 
                     if (grid[y, x] == '#')
@@ -235,7 +236,7 @@ namespace AdventOfCode
 
             // tile to the bottom
             dy = y + 1;
-            if (y == 2 && dx == 2)
+            if (dy == 2 && x == 2)
             {
                 // recurse in - top edge of inner grid
                 yield return space[z + 1][0, 0];
@@ -254,77 +255,6 @@ namespace AdventOfCode
                 // in the same grid
                 yield return space[z][dy, x];
             }
-
-            /*
-            if (x == 0 || y == 0 || x == grid.GetLength(1) - 1 || y == grid.GetLength(0) - 1)
-            {
-                // on the edge, recurse outwards
-                grid = space[z - 1];
-
-                if (x == 0)
-                {   
-                    // go out left
-                    yield return grid[2, 1];
-                }
-                else if (y == 0)
-                {
-                    // go out the top
-                    yield return grid[1, 2];
-                }
-                else if (x == grid.GetLength(1) - 1)
-                {
-                    // go out right
-                    yield return grid[2, 3];
-                }
-                else if (y == grid.GetLength(0) - 1)
-                {
-                    // go out the bottom
-                    yield return grid[3, 2];
-                }
-            }
-            else
-            {
-                // otherwise, touches the centre, recurse inwards (adjacent with entire side of inner grid)
-                grid = space[z + 1];
-
-                if (x == 2 && y == 1)
-                {
-                    // top edge
-                    yield return grid[0, 0];
-                    yield return grid[0, 1];
-                    yield return grid[0, 2];
-                    yield return grid[0, 3];
-                    yield return grid[0, 4];
-                }
-                else if (x == 2 && y == 3)
-                {
-                    // bottom edge
-                    yield return grid[4, 0];
-                    yield return grid[4, 1];
-                    yield return grid[4, 2];
-                    yield return grid[4, 3];
-                    yield return grid[4, 4];
-                }
-                else if (x == 1 && y == 2)
-                {
-                    // left edge
-                    yield return grid[0, 0];
-                    yield return grid[1, 0];
-                    yield return grid[2, 0];
-                    yield return grid[3, 0];
-                    yield return grid[4, 0];
-                }
-                else if (x == 3 && y == 2)
-                {
-                    // right edge
-                    yield return grid[0, 4];
-                    yield return grid[1, 4];
-                    yield return grid[2, 4];
-                    yield return grid[3, 4];
-                    yield return grid[4, 4];
-                }
-            }
-            */
         }
     }
 }
