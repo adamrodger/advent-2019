@@ -72,6 +72,7 @@ namespace AdventOfCode
         public int Part2(string[] input)
         {
             char[,] grid = input.ToGrid();
+            grid[2, 2] = '?';
             var space = new Dictionary<int, char[,]> {[0] = grid};
 
             for (int i = 0; i < 200; i++)
@@ -82,6 +83,7 @@ namespace AdventOfCode
             return space.Values.Select(g => g.Search(c => c == '#').Count()).Sum();
 
             // 1981 -- too low
+            // 2048 -- too low
         }
 
         private static void Simulate(Dictionary<int, char[,]> space, int z)
@@ -98,12 +100,13 @@ namespace AdventOfCode
             var grid = space[z];
 
             char[,] newGrid = new char[grid.GetLength(0), grid.GetLength(1)];
+            newGrid[2, 2] = '?';
 
             for (int y = 0; y < grid.GetLength(0); y++)
             {
                 for (int x = 0; x < grid.GetLength(1); x++)
                 {
-                    if (x == 3 && y == 3)
+                    if (x == 2 && y == 2)
                     {
                         // centre square is now a portal
                         continue;
@@ -145,7 +148,7 @@ namespace AdventOfCode
 
         private static IEnumerable<char> GetAdjacentRecursive(Dictionary<int, char[,]> space, int x, int y, int z)
         {
-            if (x == 3 && y == 3)
+            if (x == 2 && y == 2)
             {
                 // centre square is now a portal
                 yield break;
