@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -24,16 +24,20 @@ namespace AdventOfCode.Tests
 
         private static string[] GetSampleInput()
         {
-            return new string[]
+            return new[]
             {
-                
+                "....#",
+                "#..#.",
+                "#..##",
+                "..#..",
+                "#....",
             };
         }
 
         [Fact]
         public void Part1_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 2129920;
 
             var result = solver.Part1(GetSampleInput());
 
@@ -43,7 +47,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part1_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 28778811;
 
             var result = solver.Part1(GetRealInput());
             output.WriteLine($"Day 24 - Part 1 - {result}");

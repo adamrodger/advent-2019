@@ -138,12 +138,12 @@
 
         public static IEnumerable<T> Adjacent4<T>(this T[,] grid, int x, int y)
         {
-            if (y - 1 > 0)
+            if (y - 1 >= 0)
             {
                 yield return grid[y - 1, x];
             }
 
-            if (x - 1 > 0)
+            if (x - 1 >= 0)
             {
                 yield return grid[y, x - 1];
             }

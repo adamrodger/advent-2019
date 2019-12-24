@@ -24,8 +24,17 @@ namespace AdventOfCode
                 {
                     for (int x = 0; x < grid.GetLength(1); x++)
                     {
-                        int count = grid.Adjacent4(x, y).Count(c => c == '#');
-                        newGrid[y, x] = count == 1 || count == 2 ? '#' : '.';
+                        var adjacent = grid.Adjacent4(x, y);
+                        int count = adjacent.Count(c => c == '#');
+
+                        if (grid[y, x] == '#')
+                        {
+                            newGrid[y, x] = count == 1 ? '#' : '.';
+                        }
+                        else
+                        {
+                            newGrid[y, x] = count == 1 || count == 2 ? '#' : '.';
+                        }
                     }
                 }
 
@@ -36,16 +45,16 @@ namespace AdventOfCode
                     int sum = 0;
 
                     // duplicate state
-                    for (int y = 0; y < grid.GetLength(0); y++)
+                    for (int y = 0; y < newGrid.GetLength(0); y++)
                     {
-                        for (int x = 0; x < grid.GetLength(1); x++)
+                        for (int x = 0; x < newGrid.GetLength(1); x++)
                         {
-                            if (grid[y, x] != '#')
+                            if (newGrid[y, x] != '#')
                             {
                                 continue;
                             }
 
-                            int i = (y * grid.GetLength(1)) + x;
+                            int i = (y * newGrid.GetLength(1)) + x;
                             sum += (int)Math.Pow(2, i);
                         }
                     }
@@ -57,6 +66,7 @@ namespace AdventOfCode
             }
 
             // 24495935 -- too low
+            // 32435853 -- too high
         }
 
         public int Part2(string[] input)
