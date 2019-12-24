@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -69,21 +70,33 @@ namespace AdventOfCode
             // 32435853 -- too high
         }
 
-        public int Part2(string[] input)
+        public int Part2(string[] input, int iterations = 200)
         {
             char[,] grid = input.ToGrid();
             grid[2, 2] = '?';
             var space = new Dictionary<int, char[,]> {[0] = grid};
 
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 Simulate(space, 0);
+            }
+
+            foreach (int level in space.Keys.OrderBy(k => k))
+            {
+                if (space[level][0, 0] == '\0')
+                {
+                    continue;
+                }
+
+                Debug.WriteLine($"Depth: {level}");
+                space[level].Print();
             }
 
             return space.Values.Select(g => g.Search(c => c == '#').Count()).Sum();
 
             // 1981 -- too low
             // 2048 -- too low
+            // 2001 -- too low, obviously! Passes the sample though
         }
 
         private static void Simulate(Dictionary<int, char[,]> space, int z)
@@ -154,14 +167,95 @@ namespace AdventOfCode
                 yield break;
             }
 
-            var grid = space[z];
-
-            foreach (char c in grid.Adjacent4(x, y))
+            // tile above
+            int dy = y - 1;
+            if (dy == 2 && x == 2)
             {
-                // simply within the same level
-                yield return c;
+                // recurse in - bottom edge of inner grid
+                yield return space[z + 1][4, 0];
+                yield return space[z + 1][4, 1];
+                yield return space[z + 1][4, 2];
+                yield return space[z + 1][4, 3];
+                yield return space[z + 1][4, 4];
+            }
+            else if (dy < 0)
+            {
+                // go out the top - inner top centre of outer grid
+                yield return space[z - 1][1, 2];
+            }
+            else
+            {
+                // in the same grid
+                yield return space[z][dy, x];
             }
 
+            // tile to the left
+            int dx = x - 1;
+            if (y == 2 && dx == 2)
+            {
+                // recurse in - right edge of inner grid
+                yield return space[z + 1][0, 4];
+                yield return space[z + 1][1, 4];
+                yield return space[z + 1][2, 4];
+                yield return space[z + 1][3, 4];
+                yield return space[z + 1][4, 4];
+            }
+            else if (dx < 0)
+            {
+                // go out the left - inner right centre of the outer grid
+                yield return space[z - 1][2, 1];
+            }
+            else
+            {
+                // in the same grid
+                yield return space[z][y, dx];
+            }
+
+            // tile to the right
+            dx = x + 1;
+            if (y == 2 && dx == 2)
+            {
+                // recurse in - left edge of inner grid
+                yield return space[z + 1][0, 0];
+                yield return space[z + 1][1, 0];
+                yield return space[z + 1][2, 0];
+                yield return space[z + 1][3, 0];
+                yield return space[z + 1][4, 0];
+            }
+            else if (dx >= space[0].GetLength(1))
+            {
+                // go out the right - inner left centre of the outer grid
+                yield return space[z - 1][2, 3];
+            }
+            else
+            {
+                // in the same grid
+                yield return space[z][y, dx];
+            }
+
+            // tile to the bottom
+            dy = y + 1;
+            if (y == 2 && dx == 2)
+            {
+                // recurse in - top edge of inner grid
+                yield return space[z + 1][0, 0];
+                yield return space[z + 1][0, 1];
+                yield return space[z + 1][0, 2];
+                yield return space[z + 1][0, 3];
+                yield return space[z + 1][0, 4];
+            }
+            else if (dy >= space[0].GetLength(0))
+            {
+                // go out the bottom - inner bottom centre of the outer grid
+                yield return space[z - 1][3, 2];
+            }
+            else
+            {
+                // in the same grid
+                yield return space[z][dy, x];
+            }
+
+            /*
             if (x == 0 || y == 0 || x == grid.GetLength(1) - 1 || y == grid.GetLength(0) - 1)
             {
                 // on the edge, recurse outwards
@@ -230,6 +324,7 @@ namespace AdventOfCode
                     yield return grid[4, 4];
                 }
             }
+            */
         }
     }
 }

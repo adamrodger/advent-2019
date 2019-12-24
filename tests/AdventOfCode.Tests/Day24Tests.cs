@@ -60,7 +60,7 @@ namespace AdventOfCode.Tests
         {
             var expected = 99;
 
-            var result = solver.Part2(GetSampleInput());
+            var result = solver.Part2(GetSampleInput(), 10);
 
             Assert.Equal(expected, result);
         }
