@@ -74,11 +74,19 @@ namespace AdventOfCode
         {
             char[,] grid = input.ToGrid();
             grid[2, 2] = '?';
-            var space = new Dictionary<int, char[,]> {[0] = grid};
+
+            // initialise
+            var space = new Dictionary<int, char[,]>();
+            for (int z = (iterations / 2) * -1; z < iterations / 2 + 1; z++)
+            {
+                space[z] = new char[5, 5];
+            }
+
+            space[0] = grid;
 
             for (int i = 0; i < iterations; i++)
             {
-                Simulate(space, 0);
+                space = Simulate(space, iterations);
             }
 
             foreach (int level in space.Keys.OrderBy(k => k))
@@ -88,7 +96,7 @@ namespace AdventOfCode
                     continue;
                 }
 
-                Debug.WriteLine($"Depth: {level}");
+                Debug.WriteLine($"Depth: {level - (iterations / 2)}");
                 space[level].Print();
             }
 
@@ -99,65 +107,41 @@ namespace AdventOfCode
             // 2001 -- too low, obviously! Passes the sample though
         }
 
-        private static void Simulate(Dictionary<int, char[,]> space, int z)
+        private static Dictionary<int, char[,]> Simulate(Dictionary<int, char[,]> space, int iterations)
         {
-            if (!space.ContainsKey(z - 1))
-            {
-                space[z - 1] = new char[space[0].GetLength(0), space[0].GetLength(1)];
-            }
-            if (!space.ContainsKey(z + 1))
-            {
-                space[z + 1] = new char[space[0].GetLength(0), space[0].GetLength(1)];
-            }
+            var newSpace = new Dictionary<int, char[,]>(space.Count);
 
-            var grid = space[z];
-
-            char[,] newGrid = new char[grid.GetLength(0), grid.GetLength(1)];
-            newGrid[2, 2] = '?';
-
-            for (int y = 0; y < grid.GetLength(0); y++)
+            for (int z = (iterations / 2) * -1; z < iterations / 2 + 1; z++)
             {
-                for (int x = 0; x < grid.GetLength(1); x++)
+                newSpace[z] = new char[5, 5];
+                newSpace[z][2, 2] = '?';
+
+                for (int y = 0; y < 5; y++)
                 {
-                    if (x == 2 && y == 2)
+                    for (int x = 0; x < 5; x++)
                     {
-                        // centre square is now a portal
-                        continue;
-                    }
+                        if (x == 2 && y == 2)
+                        {
+                            // centre square is now a portal
+                            continue;
+                        }
 
-                    var adjacent = GetAdjacentRecursive(space, x, y, z).ToArray();
-                    Debug.Assert(adjacent.Length == 4 || adjacent.Length == 8);
-                    int count = adjacent.Count(c => c == '#');
+                        var adjacent = GetAdjacentRecursive(space, x, y, z).ToArray();
+                        int count = adjacent.Count(c => c == '#');
 
-                    if (grid[y, x] == '#')
-                    {
-                        newGrid[y, x] = count == 1 ? '#' : '.';
-                    }
-                    else
-                    {
-                        newGrid[y, x] = count == 1 || count == 2 ? '#' : '.';
+                        if (space[z][y, x] == '#')
+                        {
+                            newSpace[z][y, x] = count == 1 ? '#' : '.';
+                        }
+                        else
+                        {
+                            newSpace[z][y, x] = count == 1 || count == 2 ? '#' : '.';
+                        }
                     }
                 }
             }
 
-            var bugs = newGrid.Search(c => c == '#');
-
-            if (bugs.Any())
-            {
-                if (z <= 0)
-                {
-                    // recurse outwards
-                    Simulate(space, z - 1);
-                }
-
-                if (z >= 0)
-                {
-                    // recurse in
-                    Simulate(space, z + 1);
-                }
-            }
-
-            space[z] = newGrid;
+            return newSpace;
         }
 
         private static IEnumerable<char> GetAdjacentRecursive(Dictionary<int, char[,]> space, int x, int y, int z)
@@ -172,17 +156,23 @@ namespace AdventOfCode
             int dy = y - 1;
             if (dy == 2 && x == 2)
             {
-                // recurse in - bottom edge of inner grid
-                yield return space[z + 1][4, 0];
-                yield return space[z + 1][4, 1];
-                yield return space[z + 1][4, 2];
-                yield return space[z + 1][4, 3];
-                yield return space[z + 1][4, 4];
+                if (space.ContainsKey(z + 1))
+                {
+                    // recurse in - bottom edge of inner grid
+                    yield return space[z + 1][4, 0];
+                    yield return space[z + 1][4, 1];
+                    yield return space[z + 1][4, 2];
+                    yield return space[z + 1][4, 3];
+                    yield return space[z + 1][4, 4];
+                }
             }
             else if (dy < 0)
             {
-                // go out the top - inner top centre of outer grid
-                yield return space[z - 1][1, 2];
+                if (space.ContainsKey(z - 1))
+                {
+                    // go out the top - inner top centre of outer grid
+                    yield return space[z - 1][1, 2];
+                }
             }
             else
             {
@@ -194,17 +184,23 @@ namespace AdventOfCode
             int dx = x - 1;
             if (y == 2 && dx == 2)
             {
-                // recurse in - right edge of inner grid
-                yield return space[z + 1][0, 4];
-                yield return space[z + 1][1, 4];
-                yield return space[z + 1][2, 4];
-                yield return space[z + 1][3, 4];
-                yield return space[z + 1][4, 4];
+                if (space.ContainsKey(z + 1))
+                {
+                    // recurse in - right edge of inner grid
+                    yield return space[z + 1][0, 4];
+                    yield return space[z + 1][1, 4];
+                    yield return space[z + 1][2, 4];
+                    yield return space[z + 1][3, 4];
+                    yield return space[z + 1][4, 4];
+                }
             }
             else if (dx < 0)
             {
-                // go out the left - inner right centre of the outer grid
-                yield return space[z - 1][2, 1];
+                if (space.ContainsKey(z - 1))
+                {
+                    // go out the left - inner right centre of the outer grid
+                    yield return space[z - 1][2, 1];
+                }
             }
             else
             {
@@ -216,17 +212,23 @@ namespace AdventOfCode
             dx = x + 1;
             if (y == 2 && dx == 2)
             {
-                // recurse in - left edge of inner grid
-                yield return space[z + 1][0, 0];
-                yield return space[z + 1][1, 0];
-                yield return space[z + 1][2, 0];
-                yield return space[z + 1][3, 0];
-                yield return space[z + 1][4, 0];
+                if (space.ContainsKey(z + 1))
+                {
+                    // recurse in - left edge of inner grid
+                    yield return space[z + 1][0, 0];
+                    yield return space[z + 1][1, 0];
+                    yield return space[z + 1][2, 0];
+                    yield return space[z + 1][3, 0];
+                    yield return space[z + 1][4, 0];
+                }
             }
             else if (dx >= space[0].GetLength(1))
             {
-                // go out the right - inner left centre of the outer grid
-                yield return space[z - 1][2, 3];
+                if (space.ContainsKey(z - 1))
+                {
+                    // go out the right - inner left centre of the outer grid
+                    yield return space[z - 1][2, 3];
+                }
             }
             else
             {
@@ -238,17 +240,23 @@ namespace AdventOfCode
             dy = y + 1;
             if (dy == 2 && x == 2)
             {
-                // recurse in - top edge of inner grid
-                yield return space[z + 1][0, 0];
-                yield return space[z + 1][0, 1];
-                yield return space[z + 1][0, 2];
-                yield return space[z + 1][0, 3];
-                yield return space[z + 1][0, 4];
+                if (space.ContainsKey(z + 1))
+                {
+                    // recurse in - top edge of inner grid
+                    yield return space[z + 1][0, 0];
+                    yield return space[z + 1][0, 1];
+                    yield return space[z + 1][0, 2];
+                    yield return space[z + 1][0, 3];
+                    yield return space[z + 1][0, 4];
+                }
             }
             else if (dy >= space[0].GetLength(0))
             {
-                // go out the bottom - inner bottom centre of the outer grid
-                yield return space[z - 1][3, 2];
+                if (space.ContainsKey(z - 1))
+                {
+                    // go out the bottom - inner bottom centre of the outer grid
+                    yield return space[z - 1][3, 2];
+                }
             }
             else
             {
