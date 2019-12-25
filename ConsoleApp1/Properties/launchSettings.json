@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ConsoleApp1": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\git\\advent-2019\\src\\AdventOfCode\\inputs\\day25.txt"
-    }
-  }
-}

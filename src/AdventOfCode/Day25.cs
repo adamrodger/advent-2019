@@ -1,7 +1,7 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Linq;
+using System.Text;
 using AdventOfCode.IntCode;
+using AdventOfCode.Utilities;
 
 namespace AdventOfCode
 {
@@ -14,31 +14,46 @@ namespace AdventOfCode
         {
             var vm = new IntCodeEmulator(input);
 
-            while (true)
+            var instructions = new[]
             {
-                vm.ExecuteUntilYield();
+                "west",
+                "south",
+                "east",
+                "take monolith",
+                "south",
+                "west",
+                "west",
+                "take astrolabe",
+                "east",
+                "east",
+                "north",
+                "west",
+                "north",
+                "west",
+                "north",
+                "take tambourine",
+                "south",
+                "west",
+                "take dark matter",
+                "west",
+                "north"
+            };
 
-                while (vm.StdOut.Any())
-                {
-                    Debug.Write((char)vm.StdOut.Dequeue());
-                }
-
-                string line = Console.ReadLine();
-                foreach (char c in line)
-                {
-                    vm.StdIn.Enqueue(c);
-                }
-            }
-        }
-
-        public int Part2(string[] input)
-        {
-            foreach (string line in input)
+            foreach (char c in string.Join('\n', instructions))
             {
-                throw new NotImplementedException("Part 2 not implemented");
+                vm.StdIn.Enqueue(c);
+            }
+            vm.StdIn.Enqueue('\n');
+
+            vm.ExecuteUntilYield();
+
+            var output = new StringBuilder();
+            while (vm.StdOut.Any())
+            {
+               output.Append((char)vm.StdOut.Dequeue());
             }
 
-            return 0;
+            return output.ToString().Numbers<int>().Last();
         }
     }
 }
